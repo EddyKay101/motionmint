@@ -3,6 +3,9 @@ export type TemplateConfig = {
   ratios: Array<"9:16" | "1:1" | "16:9">; duration: number;
   motif: string; animation: string; colors: [string, string, string];
   scenes: Array<{ primary: string; secondary: string; duration: number }>;
+  useCases?: string[];
+  defaultProfileId?: string;
+  brandDefaults?: { required?: boolean; position?: string; width?: number; animation?: string };
 };
 
 export const starterTemplateConfigs: TemplateConfig[] = [

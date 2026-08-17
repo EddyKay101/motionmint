@@ -1,13 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import * as THREE from "three";
+import { outputProfiles, profileById, profileByName } from "../lib/output-profiles";
 
 type Ratio = "9:16" | "1:1" | "16:9";
 type MotionPreset =
   "horizon" | "shapes" | "momentum" | "time" | "cascade" | "footage";
 type AtmospherePreset = "none" | "dust" | "stars" | "rain" | "aurora";
+type MaskPreset = "clock" | "triangle" | "circle" | "diagonal";
+type LogoPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "custom";
+type LogoVisibility = "all" | "first" | "last";
+type LogoAnimation = "none" | "fade" | "slide" | "scale";
 type Scene = {
   id: string;
   primary: string;
@@ -21,6 +26,13 @@ type Project = {
   templateId: string;
   category: string;
   ratio: Ratio;
+  output?: {
+    profileId: string;
+    sizeId: string;
+    exportFormat: string;
+    clickThroughUrl?: string;
+    transparent?: boolean;
+  };
   scenes: Scene[];
   theme: {
     accent: string;
@@ -33,7 +45,35 @@ type Project = {
     atmosphereColor?: string;
     motionPreset?: MotionPreset;
   };
-  media: { underlayName?: string; soundtrackName?: string };
+  media: {
+    underlayName?: string;
+    underlayType?: string;
+    featureName?: string;
+    featureType?: string;
+    soundtrackName?: string;
+    logoName?: string;
+    underlayGrayscale?: number;
+    featureGrayscale?: number;
+    mask?: {
+      enabled: boolean;
+      preset: MaskPreset;
+      duration: number;
+      opacity: number;
+      scale: number;
+      showGuide: boolean;
+      loop?: boolean;
+    };
+  };
+  brand?: {
+    position: LogoPosition;
+    width: number;
+    opacity: number;
+    padding: number;
+    customX: number;
+    customY: number;
+    visibility: LogoVisibility;
+    animation: LogoAnimation;
+  };
   updatedAt: string;
 };
 type Template = {
@@ -47,6 +87,9 @@ type Template = {
   animation: string;
   colors: [string, string, string];
   scenes: Omit<Scene, "id">[];
+  useCases?: string[];
+  defaultProfileId?: string;
+  brandDefaults?: { required?: boolean; position?: LogoPosition; width?: number; animation?: LogoAnimation };
 };
 
 const starterTemplates: Template[] = [
@@ -191,6 +234,37 @@ const categories = [
   "Community",
   "Custom",
 ];
+const useCaseCategories = [
+  "All uses",
+  "Display advertising",
+  "Social posts",
+  "Digital signage",
+  "Website heroes",
+  "Event screens",
+  "Livestream graphics",
+  "Music visualisers",
+  "Presentations",
+  "Email & messaging",
+  "Digital invitations",
+  "Product advertising",
+  "Fundraising campaigns",
+  "Educational content",
+  "Creator templates",
+];
+const defaultUseCases: Record<string, string[]> = {
+  hope: ["Social posts", "Digital signage", "Livestream graphics", "Fundraising campaigns", "Educational content", "Creator templates"],
+  weekly: ["Social posts", "Website heroes", "Presentations", "Email & messaging", "Educational content", "Creator templates"],
+  faith: ["Display advertising", "Digital signage", "Event screens", "Livestream graphics", "Digital invitations", "Fundraising campaigns", "Creator templates"],
+  motivation: ["Social posts", "Digital signage", "Website heroes", "Presentations", "Email & messaging", "Educational content", "Creator templates"],
+  business: ["Display advertising", "Social posts", "Digital signage", "Website heroes", "Email & messaging", "Product advertising", "Creator templates"],
+  event: ["Display advertising", "Social posts", "Digital signage", "Event screens", "Livestream graphics", "Music visualisers", "Digital invitations", "Fundraising campaigns", "Creator templates"],
+};
+const usesForTemplate = (template: Template) =>
+  template.useCases?.length ? template.useCases : defaultUseCases[template.id] || ["Creator templates"];
+const ratioForSize = (width: number, height: number): Ratio => {
+  const value = width / height;
+  return value < 0.8 ? "9:16" : value > 1.35 ? "16:9" : "1:1";
+};
 const storageKey = "motionmint.project.v1";
 const ownerStorageKey = "motionmint.owner.v1";
 const getOwnerKey = () => {
@@ -300,6 +374,11 @@ const makeProject = (template: Template): Project => ({
   templateId: template.id,
   category: template.category,
   ratio: template.ratios[0],
+  output: {
+    profileId: "social-posts",
+    sizeId: "1080x1920",
+    exportFormat: "MP4",
+  },
   scenes: template.scenes.map((s) => ({ ...s, id: uid() })),
   theme: {
     accent: template.colors[1],
@@ -312,19 +391,45 @@ const makeProject = (template: Template): Project => ({
     atmosphereColor: "#ffd67a",
     motionPreset: presetForTemplate[template.id] || "horizon",
   },
-  media: {},
+  media: {
+    mask: {
+      enabled: true,
+      preset: "clock",
+      duration: 8,
+      opacity: 1,
+      scale: 1,
+      showGuide: true,
+      loop: true,
+    },
+  },
+  brand: {
+    position: template.brandDefaults?.position || "top-right",
+    width: template.brandDefaults?.width || 18,
+    opacity: 1,
+    padding: 8,
+    customX: 80,
+    customY: 12,
+    visibility: "all",
+    animation: template.brandDefaults?.animation || "fade",
+  },
   updatedAt: new Date().toISOString(),
 });
 
 export function MotionMintApp() {
   const [view, setView] = useState<"gallery" | "editor">("gallery");
   const [filter, setFilter] = useState("All");
+  const [useCaseFilter, setUseCaseFilter] = useState("All uses");
   const [templates, setTemplates] = useState<Template[]>(starterTemplates);
   const [project, setProject] = useState<Project>(restoreProject);
   const [underlay, setUnderlay] = useState<string>();
+  const [featureMedia, setFeatureMedia] = useState<string>();
+  const [maskReplay, setMaskReplay] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string>();
+  const [logoUrl, setLogoUrl] = useState<string>();
   const [sceneIndex, setSceneIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [freezeWhileEditing, setFreezeWhileEditing] = useState(true);
+  const [editorHasFocus, setEditorHasFocus] = useState(false);
   const [status, setStatus] = useState("Saved on this device");
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
@@ -370,7 +475,12 @@ export function MotionMintApp() {
       updatedAt: new Date().toISOString(),
     }));
   const choose = (t: Template) => {
-    setProject(makeProject(t));
+    const next = makeProject(t);
+    const profile = useCaseFilter === "All uses" ? (t.defaultProfileId ? profileById(t.defaultProfileId) : profileByName(usesForTemplate(t)[0])) : profileByName(useCaseFilter);
+    const size = profile.sizes[0];
+    next.output = { profileId: profile.id, sizeId: size.id, exportFormat: profile.exports[0], transparent: false };
+    next.ratio = ratioForSize(size.width, size.height);
+    setProject(next);
     setSceneIndex(0);
     setView("editor");
     setPlaying(true);
@@ -378,6 +488,10 @@ export function MotionMintApp() {
   const scene = project.scenes[sceneIndex] || project.scenes[0];
   const template =
     templates.find((t) => t.id === project.templateId) || templates[0];
+  const activeProfile = profileById(project.output?.profileId);
+  const availableProfiles = outputProfiles.filter((profile) => usesForTemplate(template).includes(profile.name));
+  const activeSize = activeProfile.sizes.find((size) => size.id === project.output?.sizeId) || activeProfile.sizes[0];
+  const totalDuration = project.scenes.reduce((sum, item) => sum + item.duration, 0);
   const updateScene = (patch: Partial<Scene>) =>
     update({
       scenes: project.scenes.map((s, i) =>
@@ -392,13 +506,25 @@ export function MotionMintApp() {
     update({ scenes });
     setSceneIndex(next);
   };
-  const upload = (file: File | undefined, kind: "underlay" | "soundtrack") => {
+  const upload = (
+    file: File | undefined,
+    kind: "underlay" | "feature" | "soundtrack" | "logo",
+  ) => {
     if (!file) return;
     const url = URL.createObjectURL(file);
     if (kind === "underlay") {
       if (underlay) URL.revokeObjectURL(underlay);
       setUnderlay(url);
-      update({ media: { ...project.media, underlayName: file.name } });
+      update({ media: { ...project.media, underlayName: file.name, underlayType: file.type } });
+    } else if (kind === "feature") {
+      if (featureMedia) URL.revokeObjectURL(featureMedia);
+      setFeatureMedia(url);
+      setMaskReplay((value) => value + 1);
+      update({ media: { ...project.media, featureName: file.name, featureType: file.type } });
+    } else if (kind === "logo") {
+      if (logoUrl) URL.revokeObjectURL(logoUrl);
+      setLogoUrl(url);
+      update({ media: { ...project.media, logoName: file.name } });
     } else {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       setAudioUrl(url);
@@ -406,13 +532,17 @@ export function MotionMintApp() {
     }
   };
   const renderRequest = async () => {
-    setStatus("Queueing MP4 render…");
+    if (template.brandDefaults?.required && !logoUrl) {
+      setStatus("Add the required logo before exporting");
+      return;
+    }
+    setStatus("Queueing export…");
     try {
       await fetch("/api/projects", { method: "PUT", headers: { "content-type": "application/json", "x-motionmint-owner": getOwnerKey() }, body: JSON.stringify(project) });
       const response = await fetch("/api/render-jobs", {
         method: "POST",
         headers: { "content-type": "application/json", "x-motionmint-owner": getOwnerKey() },
-        body: JSON.stringify({ projectId: project.id, ratio: project.ratio, fps: 30 }),
+        body: JSON.stringify({ projectId: project.id, ratio: project.ratio, fps: 30, profileId: project.output?.profileId, sizeId: project.output?.sizeId, format: project.output?.exportFormat || "MP4" }),
       });
       if (!response.ok) throw new Error("queue unavailable");
       const result = (await response.json()) as { job: { id: string } };
@@ -421,6 +551,7 @@ export function MotionMintApp() {
       setStatus("Saved locally · render queue unavailable");
     }
   };
+  const previewIsPlaying = playing && !(freezeWhileEditing && editorHasFocus);
   if (view === "gallery")
     return (
       <main className="shell gallery">
@@ -447,7 +578,15 @@ export function MotionMintApp() {
             phone. Your media stays on this device.
           </p>
         </section>
-        <nav className="category-row" aria-label="Template categories">
+        <section className="discovery-filters">
+          <div className="filter-heading"><span>Create for</span><small>Choose where your design will be used</small></div>
+          <nav className="category-row use-case-row" aria-label="Use case categories">
+            {useCaseCategories.map((useCase) => (
+              <button className={useCaseFilter === useCase ? "active" : ""} onClick={() => setUseCaseFilter(useCase)} key={useCase}>{useCase}</button>
+            ))}
+          </nav>
+          <div className="filter-heading content-heading"><span>Content</span><small>Choose what your message is about</small></div>
+        <nav className="category-row" aria-label="Content categories">
           {categories.map((c) => (
             <button
               className={filter === c ? "active" : ""}
@@ -458,9 +597,10 @@ export function MotionMintApp() {
             </button>
           ))}
         </nav>
+        </section>
         <section className="template-grid" aria-label="Templates">
           {templates
-            .filter((t) => filter === "All" || t.category === filter)
+            .filter((t) => (filter === "All" || t.category === filter) && (useCaseFilter === "All uses" || usesForTemplate(t).includes(useCaseFilter)))
             .map((t, i) => (
               <button
                 className={`template-card motif-${t.motif}`}
@@ -514,7 +654,7 @@ export function MotionMintApp() {
           <span>{status}</span>
         </div>
         <button className="export-top" onClick={renderRequest}>
-          Request MP4
+          Prepare export
         </button>
       </header>
       <div className="workspace">
@@ -523,8 +663,11 @@ export function MotionMintApp() {
             project={project}
             template={template}
             sceneIndex={sceneIndex}
-            playing={playing}
+            playing={previewIsPlaying}
             underlay={underlay}
+            featureMedia={featureMedia}
+            maskReplay={maskReplay}
+            logoUrl={logoUrl}
           />
           <div className="transport">
             <button
@@ -540,16 +683,44 @@ export function MotionMintApp() {
             <button
               className="play"
               onClick={() => setPlaying((v) => !v)}
-              aria-label={playing ? "Pause" : "Play"}
+              aria-label={previewIsPlaying ? "Pause" : "Play"}
             >
-              {playing ? "Ⅱ" : "▶"}
+              {previewIsPlaying ? "Ⅱ" : "▶"}
             </button>
             <span>
-              Scene {sceneIndex + 1} / {project.scenes.length}
+              {freezeWhileEditing && editorHasFocus ? "Editing · preview frozen" : `Scene ${sceneIndex + 1} / ${project.scenes.length}`}
             </span>
+            <label className="freeze-editing-toggle">
+              <input type="checkbox" checked={freezeWhileEditing} onChange={(event) => setFreezeWhileEditing(event.target.checked)} />
+              Freeze while editing
+            </label>
           </div>
         </section>
-        <section className="controls-panel">
+        <section
+          className="controls-panel"
+          onFocusCapture={() => setEditorHasFocus(true)}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEditorHasFocus(false);
+          }}
+        >
+          <section className="output-profile-card">
+            <div className="output-profile-title"><div><p className="eyebrow">Production mode</p><h2>{activeProfile.name}</h2><p>{activeProfile.description}</p></div><span>{activeSize.width} × {activeSize.height}</span></div>
+            <div className="output-profile-grid">
+              <label>Output profile<select aria-label="Output profile" value={activeProfile.id} onChange={(e) => { const profile = profileById(e.target.value); const size = profile.sizes[0]; update({ ratio: ratioForSize(size.width, size.height), output: { profileId: profile.id, sizeId: size.id, exportFormat: profile.exports[0], transparent: false } }); }}>
+                {availableProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
+              </select></label>
+              <label>Canvas size<select aria-label="Canvas size" value={activeSize.id} onChange={(e) => { const size = activeProfile.sizes.find((item) => item.id === e.target.value) || activeProfile.sizes[0]; update({ ratio: ratioForSize(size.width, size.height), output: { ...(project.output || { profileId: activeProfile.id, exportFormat: activeProfile.exports[0] }), sizeId: size.id } }); }}>
+                {activeProfile.sizes.map((size) => <option key={size.id} value={size.id}>{size.label} · {size.width}×{size.height}</option>)}
+              </select></label>
+              <label>Export format<select aria-label="Export format" value={project.output?.exportFormat || activeProfile.exports[0]} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id }), exportFormat: e.target.value } })}>
+                {activeProfile.exports.map((format) => <option key={format}>{format}</option>)}
+              </select></label>
+              {activeProfile.transparency && <label className="output-check"><input type="checkbox" checked={project.output?.transparent || false} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id, exportFormat: activeProfile.exports[0] }), transparent: e.target.checked } })} /> Transparent background</label>}
+            </div>
+            {activeProfile.clickThrough && <label className="output-url">Destination / click-through URL<input type="url" placeholder="https://example.com" value={project.output?.clickThroughUrl || ""} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id, exportFormat: activeProfile.exports[0] }), clickThroughUrl: e.target.value } })} /></label>}
+            <div className="profile-capabilities"><span className={activeProfile.audio ? "allowed" : "restricted"}>{activeProfile.audio ? "Audio allowed" : "No audio"}</span><span className={activeProfile.looping ? "allowed" : "restricted"}>{activeProfile.looping ? "Looping allowed" : "Single play"}</span><span>{activeProfile.safeInset}% safe margin</span><span className={totalDuration > activeProfile.maxDuration ? "warning" : "allowed"}>{totalDuration}s / {activeProfile.maxDuration}s max</span></div>
+            <details className="profile-requirements"><summary>Profile requirements</summary><ul>{activeProfile.requirements.map((requirement) => <li key={requirement}>{requirement}</li>)}</ul></details>
+          </section>
           <div className="section-heading">
             <div>
               <p className="eyebrow">Edit your story</p>
@@ -643,10 +814,10 @@ export function MotionMintApp() {
               </div>
             </label>
             <label>
-              Format
+              Preview ratio
               <select
                 value={project.ratio}
-                onChange={(e) => update({ ratio: e.target.value as Ratio })}
+                disabled
               >
                 {(["9:16", "1:1", "16:9"] as Ratio[]).map((r) => (
                   <option key={r}>{r}</option>
@@ -656,27 +827,128 @@ export function MotionMintApp() {
           </div>
           <div className="upload-grid">
             <label className="upload">
-              Image or video
+              Background image/video
               <input
                 type="file"
                 accept="image/*,video/*"
-                onChange={(e) => upload(e.target.files?.[0], "underlay")}
+                onChange={(e) => { upload(e.target.files?.[0], "underlay"); e.currentTarget.value = ""; }}
               />
               <span>{project.media.underlayName || "Choose underlay"}</span>
+            </label>
+            <label className="upload featured-upload">
+              Masked image/video
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={(e) => { upload(e.target.files?.[0], "feature"); e.currentTarget.value = ""; }}
+              />
+              <span>{project.media.featureName || "Choose feature media"}</span>
             </label>
             <label className="upload">
               Soundtrack / voice
               <input
                 type="file"
                 accept="audio/*"
+                disabled={!activeProfile.audio}
                 onChange={(e) => upload(e.target.files?.[0], "soundtrack")}
               />
-              <span>{project.media.soundtrackName || "Choose audio"}</span>
+              <span>{!activeProfile.audio ? "Unavailable for this profile" : project.media.soundtrackName || "Choose audio"}</span>
             </label>
           </div>
+          <div className="media-treatment" aria-label="Media colour treatment">
+            <div><b>Colour treatment</b><small>Turn uploaded images or videos partially or fully black and white.</small></div>
+            <div className="media-treatment-grid">
+              <label>Background black &amp; white<div className="range-line"><input type="range" min="0" max="100" value={project.media.underlayGrayscale || 0} onChange={(e) => update({ media: { ...project.media, underlayGrayscale: +e.target.value } })} /><output>{project.media.underlayGrayscale || 0}%</output></div></label>
+              <label>Masked media black &amp; white<div className="range-line"><input type="range" min="0" max="100" value={project.media.featureGrayscale || 0} onChange={(e) => update({ media: { ...project.media, featureGrayscale: +e.target.value } })} /><output>{project.media.featureGrayscale || 0}%</output></div></label>
+            </div>
+          </div>
+          <details open className="brand-controls">
+            <summary>Logo &amp; brand layer</summary>
+            <div className="brand-upload-row">
+              <label className="upload logo-upload">
+                Logo file
+                <input type="file" accept="image/png,image/webp,image/jpeg,image/svg+xml" onChange={(e) => upload(e.target.files?.[0], "logo")} />
+                <span>{project.media.logoName || "Choose PNG, SVG, WebP or JPG"}</span>
+              </label>
+              {logoUrl && <button type="button" className="remove-logo" onClick={() => { URL.revokeObjectURL(logoUrl); setLogoUrl(undefined); update({ media: { ...project.media, logoName: undefined } }); }}>Remove logo</button>}
+            </div>
+            <div className="style-grid brand-grid">
+              <label>Position<select value={project.brand?.position || "top-right"} onChange={(e) => update({ brand: { ...(project.brand || { width: 18, opacity: 1, padding: 8, customX: 80, customY: 12, visibility: "all", animation: "fade" }), position: e.target.value as LogoPosition } })}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="custom">Custom position</option></select></label>
+              <label>Show logo<select value={project.brand?.visibility || "all"} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", width: 18, opacity: 1, padding: 8, customX: 80, customY: 12, animation: "fade" }), visibility: e.target.value as LogoVisibility } })}><option value="all">Throughout</option><option value="first">First scene only</option><option value="last">Last scene only</option></select></label>
+              <label>Entrance<select value={project.brand?.animation || "fade"} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", width: 18, opacity: 1, padding: 8, customX: 80, customY: 12, visibility: "all" }), animation: e.target.value as LogoAnimation } })}><option value="none">None</option><option value="fade">Gentle fade</option><option value="slide">Slide in</option><option value="scale">Scale up</option></select></label>
+              <label>Logo width<div className="range-line"><input type="range" min="6" max="40" value={project.brand?.width || 18} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", opacity: 1, padding: 8, customX: 80, customY: 12, visibility: "all", animation: "fade" }), width: +e.target.value } })} /><output>{project.brand?.width || 18}%</output></div></label>
+              <label>Opacity<div className="range-line"><input type="range" min="0.2" max="1" step="0.05" value={project.brand?.opacity ?? 1} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", width: 18, padding: 8, customX: 80, customY: 12, visibility: "all", animation: "fade" }), opacity: +e.target.value } })} /><output>{Math.round((project.brand?.opacity ?? 1) * 100)}%</output></div></label>
+              <label>Safe padding<div className="range-line"><input type="range" min="2" max="18" value={project.brand?.padding || 8} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", width: 18, opacity: 1, customX: 80, customY: 12, visibility: "all", animation: "fade" }), padding: +e.target.value } })} /><output>{project.brand?.padding || 8}%</output></div></label>
+              {(project.brand?.position || "top-right") === "custom" && <><label>Horizontal position<div className="range-line"><input type="range" min="0" max="100" value={project.brand?.customX ?? 80} onChange={(e) => update({ brand: { ...(project.brand || { position: "custom", width: 18, opacity: 1, padding: 8, customY: 12, visibility: "all", animation: "fade" }), customX: +e.target.value } })} /><output>{project.brand?.customX ?? 80}%</output></div></label><label>Vertical position<div className="range-line"><input type="range" min="0" max="100" value={project.brand?.customY ?? 12} onChange={(e) => update({ brand: { ...(project.brand || { position: "custom", width: 18, opacity: 1, padding: 8, customX: 80, visibility: "all", animation: "fade" }), customY: +e.target.value } })} /><output>{project.brand?.customY ?? 12}%</output></div></label></>}
+            </div>
+            {template.brandDefaults?.required && <p className="brand-required">This template requires a logo before export.</p>}
+          </details>
+          <details open className="mask-controls">
+            <summary>Media mask animation</summary>
+            <div className="mask-toggle-row">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={project.media.mask?.enabled ?? true}
+                  onChange={(e) =>
+                    update({
+                      media: {
+                        ...project.media,
+                        mask: {
+                          ...(project.media.mask || {
+                            preset: "clock",
+                            duration: 8,
+                            opacity: 1,
+                            scale: 1,
+                            showGuide: true,
+                          }),
+                          enabled: e.target.checked,
+                        },
+                      },
+                    })
+                  }
+                />
+                Enable animated mask
+              </label>
+              <small>Applied to the feature upload</small>
+            </div>
+            <div className="style-grid mask-grid">
+              <label>
+                Reveal shape
+                <select
+                  value={project.media.mask?.preset || "clock"}
+                  onChange={(e) =>
+                    update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, duration: 8, opacity: 1, scale: 1, showGuide: true }), preset: e.target.value as MaskPreset } } })
+                  }
+                >
+                  <option value="clock">Clock sweep</option>
+                  <option value="triangle">Triangle reveal</option>
+                  <option value="circle">Circle aperture</option>
+                  <option value="diagonal">Diagonal wipe</option>
+                </select>
+              </label>
+              <label>
+                Reveal duration
+                <div className="range-line"><input type="range" min="2" max="15" step="0.5" value={project.media.mask?.duration || 8} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", opacity: 1, scale: 1, showGuide: true }), duration: +e.target.value } } })} /><output>{project.media.mask?.duration || 8}s</output></div>
+              </label>
+              <label>
+                Feature opacity
+                <div className="range-line"><input type="range" min="0.15" max="1" step="0.05" value={project.media.mask?.opacity ?? 1} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", duration: 8, scale: 1, showGuide: true }), opacity: +e.target.value } } })} /><output>{Math.round((project.media.mask?.opacity ?? 1) * 100)}%</output></div>
+              </label>
+              <label>
+                Feature scale
+                <div className="range-line"><input type="range" min="0.7" max="1.5" step="0.05" value={project.media.mask?.scale ?? 1} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", duration: 8, opacity: 1, showGuide: true }), scale: +e.target.value } } })} /><output>{Math.round((project.media.mask?.scale ?? 1) * 100)}%</output></div>
+              </label>
+            </div>
+            <label className="mask-guide-toggle"><input type="checkbox" checked={project.media.mask?.showGuide ?? true} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", duration: 8, opacity: 1, scale: 1 }), showGuide: e.target.checked } } })} /> Show clock face and rotating hand</label>
+            <div className="mask-preview-actions">
+              <label className="mask-guide-toggle"><input type="checkbox" checked={project.media.mask?.loop ?? true} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", duration: 8, opacity: 1, scale: 1, showGuide: true }), loop: e.target.checked } } })} /> Loop reveal while previewing</label>
+              <button type="button" onClick={() => setMaskReplay((value) => value + 1)} disabled={!featureMedia}>↻ Replay mask</button>
+            </div>
+          </details>
           {/* Uploaded soundtrack preview is audio-only, so no caption track exists. */}
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          {audioUrl && <audio className="audio" controls src={audioUrl} />}
+          {audioUrl && activeProfile.audio && <audio className="audio" controls src={audioUrl} />}
           <details open>
             <summary>Style &amp; atmosphere</summary>
             <div className="style-grid">
@@ -840,8 +1112,8 @@ export function MotionMintApp() {
             </p>
           </details>
           <button className="render-button" onClick={renderRequest}>
-            <span>Prepare final MP4 request</span>
-            <small>Downloads a server-render-ready project manifest</small>
+            <span>Queue {project.output?.exportFormat || "MP4"} export</span>
+            <small>Saves this profile-aware production job to the backend</small>
           </button>
           <p className="privacy">
             Uploads remain private in this browser session. Project text and
@@ -859,12 +1131,18 @@ function Preview({
   sceneIndex,
   playing,
   underlay,
+  featureMedia,
+  logoUrl,
+  maskReplay,
 }: {
   project: Project;
   template: Template;
   sceneIndex: number;
   playing: boolean;
   underlay?: string;
+  featureMedia?: string;
+  logoUrl?: string;
+  maskReplay: number;
 }) {
   const inner = useRef<HTMLDivElement>(null);
   const scene = project.scenes[sceneIndex];
@@ -873,6 +1151,28 @@ function Preview({
   const typography =
     typographyPresets[project.theme.font as keyof typeof typographyPresets] ||
     typographyPresets.Editorial;
+  const previewProfile = profileById(project.output?.profileId);
+  const previewSize = previewProfile.sizes.find((size) => size.id === project.output?.sizeId) || previewProfile.sizes[0];
+  useLayoutEffect(() => {
+    const root = inner.current;
+    const headline = root?.querySelector<HTMLHeadingElement>("h3");
+    const secondary = root?.querySelector<HTMLHeadingElement>("h4");
+    if (!root || !headline) return;
+    headline.style.fontSize = "";
+    if (secondary) secondary.style.fontSize = "";
+    let headlineSize = Number.parseFloat(getComputedStyle(headline).fontSize);
+    let secondarySize = secondary ? Number.parseFloat(getComputedStyle(secondary).fontSize) : 0;
+    let attempts = 0;
+    while (root.scrollHeight > root.clientHeight + 1 && attempts < 24) {
+      headlineSize = Math.max(8, headlineSize * 0.92);
+      headline.style.fontSize = `${headlineSize}px`;
+      if (secondary) {
+        secondarySize = Math.max(7, secondarySize * 0.92);
+        secondary.style.fontSize = `${secondarySize}px`;
+      }
+      attempts += 1;
+    }
+  }, [scene.primary, scene.secondary, previewSize.id, project.theme.font]);
   const animate = useCallback(() => {
     if (!inner.current || !playing) return;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -920,13 +1220,23 @@ function Preview({
     );
     return () => clearTimeout(timer.current);
   }, [playing, sceneIndex, scene.duration, project.scenes.length]);
-  const isVideo =
+  const isVideo = Boolean(
     underlay &&
-    /^(blob:)/.test(underlay) &&
-    project.media.underlayName?.match(/\.(mp4|webm|mov)$/i);
+    (project.media.underlayType?.startsWith("video/") || project.media.underlayName?.match(/\.(mp4|webm|mov|m4v|ogv)$/i)),
+  );
+  const featureIsVideo = Boolean(
+    featureMedia &&
+    (project.media.featureType?.startsWith("video/") || project.media.featureName?.match(/\.(mp4|webm|mov|m4v|ogv)$/i)),
+  );
+  const canvasAspect = previewSize.width / previewSize.height;
+  const canvasShape = canvasAspect >= 4 ? "ultrawide" : canvasAspect >= 1.45 ? "wide" : canvasAspect <= 0.72 ? "tall" : "compact";
+  const copyLength = scene.primary.length + scene.secondary.length;
+  const copyClass = copyLength > 135 ? "copy-very-long" : copyLength > 75 ? "copy-long" : "copy-standard";
+  const brand = project.brand || { position: "top-right" as LogoPosition, width: 18, opacity: 1, padding: 8, customX: 80, customY: 12, visibility: "all" as LogoVisibility, animation: "fade" as LogoAnimation };
+  const logoIsVisible = brand.visibility === "all" || (brand.visibility === "first" && sceneIndex === 0) || (brand.visibility === "last" && sceneIndex === project.scenes.length - 1);
   return (
     <div
-      className={`composition ratio-${project.ratio.replace(":", "-")} motif-${template.motif} motion-${motionPreset} ${playing ? "is-playing" : "is-paused"}`}
+      className={`composition composition-${canvasShape} ${copyClass} ratio-${project.ratio.replace(":", "-")} motif-${template.motif} motion-${motionPreset} ${underlay ? "has-underlay" : ""} ${playing ? "is-playing" : "is-paused"}`}
       style={
         {
           "--accent": project.theme.accent,
@@ -936,16 +1246,28 @@ function Preview({
           "--display-font": typography.font,
           "--display-weight": typography.weight,
           "--display-tracking": typography.tracking,
+          "--safe-inset": `${previewProfile.safeInset}%`,
+          aspectRatio: `${previewSize.width} / ${previewSize.height}`,
         } as React.CSSProperties
       }
     >
       {underlay &&
         (isVideo ? (
-          <video src={underlay} autoPlay muted loop playsInline />
+          <PreviewVideo src={underlay} playing={playing} grayscale={project.media.underlayGrayscale || 0} />
         ) : (
-          <img src={underlay} alt="Uploaded underlay preview" />
+          <img src={underlay} alt="Uploaded underlay preview" style={{ filter: `grayscale(${project.media.underlayGrayscale || 0}%)` }} />
         ))}
       <div className="backdrop" />
+      {featureMedia && (
+        <MaskedMedia
+          key={`${featureMedia}-${project.media.mask?.preset || "clock"}-${maskReplay}`}
+          src={featureMedia}
+          isVideo={featureIsVideo}
+          mask={project.media.mask}
+          grayscale={project.media.featureGrayscale || 0}
+          playing={playing}
+        />
+      )}
       <PersistentMotion preset={motionPreset} sceneIndex={sceneIndex} />
       {(project.theme.atmosphere || "none") !== "none" && (
         <Atmosphere
@@ -977,12 +1299,91 @@ function Preview({
         )}
         <i />
       </div>
+      {logoUrl && logoIsVisible && (
+        <BrandLogo key={`${logoUrl}-${sceneIndex}-${brand.animation}`} src={logoUrl} settings={brand} />
+      )}
       <div
         className="progress"
         style={{
           width: `${((sceneIndex + 1) / project.scenes.length) * 100}%`,
         }}
       />
+    </div>
+  );
+}
+
+function PreviewVideo({ src, playing, grayscale }: { src: string; playing: boolean; grayscale: number }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (playing) videoRef.current.play().catch(() => {});
+    else videoRef.current.pause();
+  }, [playing]);
+  return <video ref={videoRef} src={src} autoPlay muted loop playsInline style={{ filter: `grayscale(${grayscale}%)` }} />;
+}
+
+function BrandLogo({ src, settings }: { src: string; settings: NonNullable<Project["brand"]> }) {
+  return (
+    <div className={`brand-logo brand-logo-${settings.position} logo-animation-${settings.animation}`} style={{ "--logo-width": `${settings.width}%`, "--logo-opacity": settings.opacity, "--logo-padding": `${settings.padding}%`, "--logo-x": `${settings.customX}%`, "--logo-y": `${settings.customY}%` } as React.CSSProperties}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="Uploaded brand logo" />
+    </div>
+  );
+}
+
+function MaskedMedia({
+  src,
+  isVideo,
+  mask,
+  grayscale,
+  playing,
+}: {
+  src: string;
+  isVideo: boolean;
+  mask: Project["media"]["mask"];
+  grayscale: number;
+  playing: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const settings = mask || {
+    enabled: true,
+    preset: "clock" as MaskPreset,
+    duration: 8,
+    opacity: 1,
+    scale: 1,
+    showGuide: true,
+  };
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (playing) videoRef.current.play().catch(() => {});
+    else videoRef.current.pause();
+  }, [playing]);
+  return (
+    <div
+      className={`masked-media-system mask-${settings.preset} ${settings.enabled ? "mask-enabled" : "mask-disabled"} ${(settings.loop ?? true) ? "mask-loop" : "mask-once"} ${playing ? "mask-playing" : "mask-paused"}`}
+      style={
+        {
+          "--mask-duration": `${settings.duration}s`,
+          "--feature-opacity": settings.opacity,
+          "--feature-scale": settings.scale,
+        } as React.CSSProperties
+      }
+    >
+      <div className="masked-media-viewport" style={{ filter: `grayscale(${grayscale}%)` }}>
+        {isVideo ? (
+          <video ref={videoRef} src={src} autoPlay muted loop playsInline />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt="Uploaded masked feature preview" />
+        )}
+      </div>
+      {settings.enabled && settings.preset === "clock" && settings.showGuide && (
+        <div className="mask-clock-guide" aria-hidden="true">
+          <i className="mask-clock-ring" />
+          <i className="mask-clock-hand" />
+          <i className="mask-clock-pin" />
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { TemplateConfig } from "../../lib/starter-templates";
+import { outputProfiles, profileByName } from "../../lib/output-profiles";
 
 type Status = "draft" | "published" | "archived";
 type RecordItem = { id: string; name: string; category: string; status: Status; config: TemplateConfig; updatedAt: string };
@@ -14,7 +15,12 @@ const blank = (): FormState => ({
   ratios: ["9:16"], duration: 10, motif: "horizon", animation: "rise",
   colors: ["#151713", "#bfe95b", "#ffffff"],
   scenes: [{ primary: "Your headline", secondary: "Your secondary language", duration: 5 }],
+  useCases: ["Social posts", "Creator templates"],
+  defaultProfileId: "social-posts",
+  brandDefaults: { required: false, position: "top-right", width: 18, animation: "fade" },
 });
+
+const useCaseOptions = ["Display advertising", "Social posts", "Digital signage", "Website heroes", "Event screens", "Livestream graphics", "Music visualisers", "Presentations", "Email & messaging", "Digital invitations", "Product advertising", "Fundraising campaigns", "Educational content", "Creator templates"];
 
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -46,7 +52,8 @@ export function AdminApp() {
 
   const select = (item: RecordItem) => {
     setSelectedId(item.id);
-    setForm({ ...item.config, id: item.id, name: item.name, category: item.category, status: item.status, colors: [...item.config.colors], scenes: item.config.scenes.map((scene) => ({ ...scene })) });
+    const assignedUses = item.config.useCases || ["Creator templates"];
+    setForm({ ...item.config, id: item.id, name: item.name, category: item.category, status: item.status, useCases: assignedUses, defaultProfileId: item.config.defaultProfileId || profileByName(assignedUses[0]).id, brandDefaults: item.config.brandDefaults || { required: false, position: "top-right", width: 18, animation: "fade" }, colors: [...item.config.colors], scenes: item.config.scenes.map((scene) => ({ ...scene })) });
     setMessage(`Editing ${item.name}`);
   };
 
@@ -103,10 +110,14 @@ export function AdminApp() {
                 <label>Status<select value={form.status} onChange={(event) => update("status", event.target.value as Status)}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
               </div><label>Description<textarea rows={2} value={form.description} onChange={(event) => update("description", event.target.value)} /></label></fieldset>
 
+              <fieldset><legend>Create for</legend><p className="admin-field-note">These choices control which production modes customers can select for this template.</p><div className="admin-use-cases">{useCaseOptions.map((useCase) => <label key={useCase}><input type="checkbox" checked={(form.useCases || []).includes(useCase)} onChange={(event) => update("useCases", event.target.checked ? [...(form.useCases || []), useCase] : (form.useCases || []).filter((item) => item !== useCase))} />{useCase}</label>)}</div><label className="admin-default-profile">Default production mode<select value={form.defaultProfileId || ""} onChange={(event) => update("defaultProfileId", event.target.value)}><option value="">Choose a default</option>{outputProfiles.filter((profile) => (form.useCases || []).includes(profile.name)).map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label></fieldset>
+
               <fieldset><legend>Canvas &amp; visual system</legend><div className="admin-ratios"><span>Supported ratios</span>{(["9:16", "1:1", "16:9"] as const).map((ratio) => <label key={ratio}><input type="checkbox" checked={form.ratios.includes(ratio)} onChange={(event) => update("ratios", event.target.checked ? [...form.ratios, ratio] : form.ratios.filter((item) => item !== ratio))} /> {ratio}</label>)}</div><div className="admin-grid two">
                 <label>Background treatment<select value={form.motif} onChange={(event) => update("motif", event.target.value)}><option value="horizon">Horizon light</option><option value="paper">Editorial paper</option><option value="glass">Stained glass</option><option value="kinetic">Kinetic frame</option><option value="product">Product split</option><option value="rings">Event rings</option></select></label>
                 <label>Animation preset<select value={form.animation} onChange={(event) => update("animation", event.target.value)}><option value="rise">Cinematic rise</option><option value="slide">Editorial slide</option><option value="reveal">Light reveal</option><option value="scale">Kinetic scale</option><option value="wipe">Product wipe</option><option value="orbit">Orbital build</option></select></label>
               </div><div className="admin-colors">{["Base", "Accent", "Text"].map((label, index) => <label key={label}>{label}<input type="color" value={form.colors[index]} onChange={(event) => { const colors = [...form.colors] as TemplateConfig["colors"]; colors[index] = event.target.value; update("colors", colors); }} /></label>)}</div></fieldset>
+
+              <fieldset><legend>Logo &amp; brand defaults</legend><p className="admin-field-note">Set the starting logo behaviour for projects created from this template. Customers can still adjust it in the editor.</p><div className="admin-grid two"><label className="admin-check"><input type="checkbox" checked={form.brandDefaults?.required || false} onChange={(event) => update("brandDefaults", { ...(form.brandDefaults || {}), required: event.target.checked })} /> Require a logo before export</label><label>Default position<select value={form.brandDefaults?.position || "top-right"} onChange={(event) => update("brandDefaults", { ...(form.brandDefaults || {}), position: event.target.value })}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="custom">Custom</option></select></label><label>Default width<div className="admin-duration"><input type="range" min="6" max="40" value={form.brandDefaults?.width || 18} onChange={(event) => update("brandDefaults", { ...(form.brandDefaults || {}), width: Number(event.target.value) })} /><output>{form.brandDefaults?.width || 18}%</output></div></label><label>Default entrance<select value={form.brandDefaults?.animation || "fade"} onChange={(event) => update("brandDefaults", { ...(form.brandDefaults || {}), animation: event.target.value })}><option value="none">None</option><option value="fade">Gentle fade</option><option value="slide">Slide in</option><option value="scale">Scale up</option></select></label></div></fieldset>
 
               <fieldset><legend>Default scenes <span>{totalDuration}s total</span></legend>{form.scenes.map((scene, index) => <div className="admin-scene" key={index}><div className="admin-scene-title"><b>Scene {index + 1}</b><button type="button" disabled={form.scenes.length === 1} onClick={() => update("scenes", form.scenes.filter((_, sceneIndex) => sceneIndex !== index))}>Remove</button></div><label>Primary copy<textarea rows={2} value={scene.primary} onChange={(event) => updateScene(index, { primary: event.target.value })} /></label><label>Secondary-language copy<textarea dir="auto" rows={2} value={scene.secondary} onChange={(event) => updateScene(index, { secondary: event.target.value })} /></label><label>Duration<div className="admin-duration"><input type="range" min="2" max="20" value={scene.duration} onChange={(event) => updateScene(index, { duration: Number(event.target.value) })} /><output>{scene.duration}s</output></div></label></div>)}<button className="admin-add-scene" type="button" onClick={() => update("scenes", [...form.scenes, { primary: "New scene", secondary: "", duration: 5 }])}>＋ Add scene</button></fieldset>
             </form>
