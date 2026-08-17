@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import * as THREE from "three";
+import { DotLottieReact, type DotLottie } from "@lottiefiles/dotlottie-react";
 import { outputProfiles, profileById, profileByName } from "../lib/output-profiles";
+import { buildStandaloneHtml } from "../lib/html-export";
 
 type Ratio = "9:16" | "1:1" | "16:9";
 type MotionPreset =
@@ -13,6 +15,7 @@ type MaskPreset = "clock" | "triangle" | "circle" | "diagonal";
 type LogoPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "custom";
 type LogoVisibility = "all" | "first" | "last";
 type LogoAnimation = "none" | "fade" | "slide" | "scale";
+type LottieVisibility = "all" | "first" | "last" | "current";
 type Scene = {
   id: string;
   primary: string;
@@ -54,6 +57,8 @@ type Project = {
     logoName?: string;
     underlayGrayscale?: number;
     featureGrayscale?: number;
+    underlayPlaybackRate?: number;
+    featurePlaybackRate?: number;
     mask?: {
       enabled: boolean;
       preset: MaskPreset;
@@ -73,6 +78,19 @@ type Project = {
     customY: number;
     visibility: LogoVisibility;
     animation: LogoAnimation;
+  };
+  lottie?: {
+    name?: string;
+    dataUrl?: string;
+    width: number;
+    x: number;
+    y: number;
+    rotation: number;
+    opacity: number;
+    speed: number;
+    loop: boolean;
+    visibility: LottieVisibility;
+    sceneId?: string;
   };
   updatedAt: string;
 };
@@ -367,6 +385,20 @@ const presetForTemplate: Record<string, MotionPreset> = {
   event: "momentum",
 };
 const uid = () => Math.random().toString(36).slice(2, 9);
+const safeFileName = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "motionmint-export";
+const webExportFormats = ["HTML5 ZIP", "Standalone HTML", "OBS Browser Source", "Embed"];
+const staticExportFormats = ["PNG", "Fallback JPG"];
+const immediateExportFormats = [...webExportFormats, ...staticExportFormats, "Template package"];
+const asDataUrl = async (url?: string) => {
+  if (!url) return "";
+  const blob = await fetch(url).then((response) => response.blob());
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+};
 const makeProject = (template: Template): Project => ({
   schemaVersion: 1,
   id: uid(),
@@ -412,6 +444,16 @@ const makeProject = (template: Template): Project => ({
     visibility: "all",
     animation: template.brandDefaults?.animation || "fade",
   },
+  lottie: {
+    width: 28,
+    x: 76,
+    y: 72,
+    rotation: 0,
+    opacity: 1,
+    speed: 1,
+    loop: true,
+    visibility: "all",
+  },
   updatedAt: new Date().toISOString(),
 });
 
@@ -431,6 +473,7 @@ export function MotionMintApp() {
   const [freezeWhileEditing, setFreezeWhileEditing] = useState(true);
   const [editorHasFocus, setEditorHasFocus] = useState(false);
   const [status, setStatus] = useState("Saved on this device");
+  const compositionRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
     if ("serviceWorker" in navigator)
@@ -531,9 +574,101 @@ export function MotionMintApp() {
       update({ media: { ...project.media, soundtrackName: file.name } });
     }
   };
+  const uploadLottie = (file: File | undefined) => {
+    if (!file) return;
+    if (!/\.(json|lottie)$/i.test(file.name)) {
+      setStatus("Choose a Lottie .json or .lottie file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setStatus("Lottie files must be smaller than 5 MB for this local MVP");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => setStatus("Could not read that Lottie file");
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      update({ lottie: { ...(project.lottie || { width: 28, x: 76, y: 72, rotation: 0, opacity: 1, speed: 1, loop: true, visibility: "all" }), name: file.name, dataUrl } });
+      setStatus("Lottie animation added · saved locally");
+    };
+    reader.readAsDataURL(file);
+  };
+  const downloadWebExport = async () => {
+    setStatus("Preparing self-contained web export…");
+    const [background, feature, logo] = await Promise.all([asDataUrl(underlay), asDataUrl(featureMedia), asDataUrl(logoUrl)]);
+    const payload = JSON.stringify({ project, background, feature, logo, width: activeSize.width, height: activeSize.height }).replace(/</g, "\\u003c");
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${project.title.replace(/[<>&"]/g, "")}</title><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:Arial,sans-serif}#mm{position:relative;width:100%;height:100%;overflow:hidden;color:var(--text);background:var(--base)}.media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(var(--gray))}.shade{position:absolute;inset:0;background:linear-gradient(145deg,color-mix(in srgb,var(--base),transparent 48%),rgba(0,0,0,var(--overlay)))}.feature{position:absolute;right:5%;bottom:7%;width:42%;height:54%;object-fit:cover;clip-path:circle(48%);filter:grayscale(var(--feature-gray));opacity:.92}.copy{position:absolute;z-index:2;left:8%;right:8%;top:50%;transform:translateY(-50%);animation:enter .8s ease both}.copy h1{margin:0;max-width:80%;font:700 clamp(28px,7vw,110px)/.95 Georgia,serif}.copy h2{margin:4% 0 0;max-width:76%;font:500 clamp(18px,4vw,58px)/1.15 Georgia,serif;text-align:start}.logo{position:absolute;z-index:3;top:7%;right:7%;width:18%;max-height:20%;object-fit:contain}.progress{position:absolute;z-index:4;bottom:0;left:0;height:4px;background:var(--accent);animation:progress var(--duration) linear both}@keyframes enter{from{opacity:0;transform:translateY(-42%)}to{opacity:1;transform:translateY(-50%)}}@keyframes progress{from{width:0}to{width:100%}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}</style></head><body><main id="mm"></main><script type="application/json" id="data">${payload}</script><script>(()=>{const d=JSON.parse(document.getElementById('data').textContent),p=d.project,root=document.getElementById('mm');root.style.cssText='--base:'+p.theme.base+';--accent:'+p.theme.accent+';--text:'+p.theme.text+';--overlay:'+p.theme.overlay+';--gray:'+(p.media.underlayGrayscale||0)+'%;--feature-gray:'+(p.media.featureGrayscale||0)+'%';let i=0,media=(src,name,cls)=>!src?'':/video[/]/.test(name||'')||/[.](mp4|webm|mov|m4v)$/i.test(name||'')?'<video class="'+cls+'" src="'+src+'" autoplay muted loop playsinline></video>':'<img class="'+cls+'" src="'+src+'" alt="">';function show(){const s=p.scenes[i];root.innerHTML=media(d.background,p.media.underlayType||p.media.underlayName,'media')+'<div class="shade"></div>'+media(d.feature,p.media.featureType||p.media.featureName,'feature')+'<section class="copy"><h1 dir="auto"></h1><h2 dir="auto"></h2></section>'+(d.logo?'<img class="logo" src="'+d.logo+'" alt="">':'')+'<i class="progress"></i>';root.style.setProperty('--duration',s.duration+'s');root.querySelector('h1').textContent=s.primary;root.querySelector('h2').textContent=s.secondary||'';root.querySelectorAll('video').forEach((v,n)=>v.playbackRate=n?(p.media.featurePlaybackRate||1):(p.media.underlayPlaybackRate||1));setTimeout(()=>{i=(i+1)%p.scenes.length;show()},s.duration*1000)}show()})()</script></body></html>`;
+    const clickTagSetup = `window.clickTag=(p.output&&p.output.clickThroughUrl)||'';if(window.clickTag){root.style.cursor='pointer';root.addEventListener('click',()=>window.open(window.clickTag,'_blank'))}`;
+    const exportHtml = html.replace("let i=0,media=", `${clickTagSetup};let i=0,media=`);
+    const fullExportHtml = buildStandaloneHtml({ project, template, background, feature, logo, width: activeSize.width, height: activeSize.height }) || exportHtml;
+    const format = project.output?.exportFormat || "Standalone HTML";
+    let downloadBlob: Blob;
+    let extension: "html" | "zip" = "html";
+    if (format === "HTML5 ZIP") {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      zip.file("index.html", fullExportHtml);
+      zip.file("manifest.json", JSON.stringify({ name: project.title, format: "HTML5", width: activeSize.width, height: activeSize.height, clickTag: project.output?.clickThroughUrl || "", duration: totalDuration, generatedBy: "MotionMint" }, null, 2));
+      zip.file("project.json", JSON.stringify(project, null, 2));
+      zip.file("README.txt", "MotionMint HTML5 banner\n\nOpen index.html in a browser or upload the ZIP to a compatible HTML5 advertising platform. Uploaded customer media is embedded privately inside index.html. The click-through destination is exposed as window.clickTag.\n");
+      downloadBlob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+      extension = "zip";
+    } else {
+      downloadBlob = new Blob([fullExportHtml], { type: "text/html" });
+    }
+    const url = URL.createObjectURL(downloadBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    const suffix = format === "OBS Browser Source" ? "obs" : format === "HTML5 ZIP" ? "html5-ad" : "web";
+    link.download = `${safeFileName(project.title)}-${suffix}.${extension}`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus(format === "HTML5 ZIP" ? "HTML5 ZIP downloaded" : "Self-contained HTML downloaded");
+  };
+  const downloadStaticExport = async () => {
+    if (!compositionRef.current) throw new Error("Preview unavailable");
+    const { toJpeg, toPng } = await import("html-to-image");
+    const format = project.output?.exportFormat || "PNG";
+    setStatus(`Preparing ${format}…`);
+    const options = { width: activeSize.width, height: activeSize.height, canvasWidth: activeSize.width, canvasHeight: activeSize.height, pixelRatio: 1, cacheBust: true };
+    const dataUrl = format === "Fallback JPG" ? await toJpeg(compositionRef.current, { ...options, quality: 0.92, backgroundColor: project.theme.base || template.colors[0] }) : await toPng(compositionRef.current, options);
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = `${safeFileName(project.title)}.${format === "Fallback JPG" ? "jpg" : "png"}`;
+    link.click();
+    setStatus(`${format} downloaded`);
+  };
+  const downloadTemplatePackage = async () => {
+    setStatus("Preparing template package…");
+    const { default: JSZip } = await import("jszip");
+    const zip = new JSZip();
+    zip.file("template.json", JSON.stringify({ ...project, id: undefined, updatedAt: undefined }, null, 2));
+    zip.file("README.txt", "MotionMint reusable template package. Import template.json into a compatible MotionMint installation. Customer media is intentionally excluded from reusable templates.\n");
+    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${safeFileName(project.title)}-template.zip`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus("Template package downloaded");
+  };
   const renderRequest = async () => {
     if (template.brandDefaults?.required && !logoUrl) {
       setStatus("Add the required logo before exporting");
+      return;
+    }
+    const format = project.output?.exportFormat || "MP4";
+    if (webExportFormats.includes(format)) {
+      try { await downloadWebExport(); } catch { setStatus("Could not prepare the local web export"); }
+      return;
+    }
+    if (staticExportFormats.includes(format)) {
+      try { await downloadStaticExport(); } catch { setStatus(`Could not prepare the ${format} download`); }
+      return;
+    }
+    if (format === "Template package") {
+      try { await downloadTemplatePackage(); } catch { setStatus("Could not prepare the template package"); }
       return;
     }
     setStatus("Queueing export…");
@@ -546,7 +681,7 @@ export function MotionMintApp() {
       });
       if (!response.ok) throw new Error("queue unavailable");
       const result = (await response.json()) as { job: { id: string } };
-      setStatus(`Render queued · ${result.job.id.slice(0, 8)}`);
+      setStatus(`Render request queued · worker not connected · ${result.job.id.slice(0, 8)}`);
     } catch {
       setStatus("Saved locally · render queue unavailable");
     }
@@ -668,6 +803,7 @@ export function MotionMintApp() {
             featureMedia={featureMedia}
             maskReplay={maskReplay}
             logoUrl={logoUrl}
+            compositionRef={compositionRef}
           />
           <div className="transport">
             <button
@@ -714,7 +850,7 @@ export function MotionMintApp() {
               </select></label>
               <label>Export format<select aria-label="Export format" value={project.output?.exportFormat || activeProfile.exports[0]} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id }), exportFormat: e.target.value } })}>
                 {activeProfile.exports.map((format) => <option key={format}>{format}</option>)}
-              </select></label>
+              </select><small className="export-behaviour">{immediateExportFormats.includes(project.output?.exportFormat || activeProfile.exports[0]) ? "Downloads immediately to this device" : "Creates a render request · video/GIF worker not connected yet"}</small></label>
               {activeProfile.transparency && <label className="output-check"><input type="checkbox" checked={project.output?.transparent || false} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id, exportFormat: activeProfile.exports[0] }), transparent: e.target.checked } })} /> Transparent background</label>}
             </div>
             {activeProfile.clickThrough && <label className="output-url">Destination / click-through URL<input type="url" placeholder="https://example.com" value={project.output?.clickThroughUrl || ""} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id, exportFormat: activeProfile.exports[0] }), clickThroughUrl: e.target.value } })} /></label>}
@@ -855,13 +991,38 @@ export function MotionMintApp() {
               <span>{!activeProfile.audio ? "Unavailable for this profile" : project.media.soundtrackName || "Choose audio"}</span>
             </label>
           </div>
-          <div className="media-treatment" aria-label="Media colour treatment">
-            <div><b>Colour treatment</b><small>Turn uploaded images or videos partially or fully black and white.</small></div>
+          <details open className="media-treatment">
+            <summary>Media treatment &amp; slow motion</summary>
+            <p>Colour controls work with images and video. Speed controls apply to video.</p>
             <div className="media-treatment-grid">
               <label>Background black &amp; white<div className="range-line"><input type="range" min="0" max="100" value={project.media.underlayGrayscale || 0} onChange={(e) => update({ media: { ...project.media, underlayGrayscale: +e.target.value } })} /><output>{project.media.underlayGrayscale || 0}%</output></div></label>
               <label>Masked media black &amp; white<div className="range-line"><input type="range" min="0" max="100" value={project.media.featureGrayscale || 0} onChange={(e) => update({ media: { ...project.media, featureGrayscale: +e.target.value } })} /><output>{project.media.featureGrayscale || 0}%</output></div></label>
+              <label>Background video speed<div className="range-line"><input type="range" min="0.25" max="1" step="0.05" value={project.media.underlayPlaybackRate ?? 1} onChange={(e) => update({ media: { ...project.media, underlayPlaybackRate: +e.target.value } })} /><output>{(project.media.underlayPlaybackRate ?? 1).toFixed(2).replace(/0$/, "")}×</output></div></label>
+              <label>Masked video speed<div className="range-line"><input type="range" min="0.25" max="1" step="0.05" value={project.media.featurePlaybackRate ?? 1} onChange={(e) => update({ media: { ...project.media, featurePlaybackRate: +e.target.value } })} /><output>{(project.media.featurePlaybackRate ?? 1).toFixed(2).replace(/0$/, "")}×</output></div></label>
             </div>
-          </div>
+          </details>
+          <details open className="lottie-controls">
+            <summary>Lottie animation layer</summary>
+            <p>Add a reusable vector animation above the motion system. Files stay in this project on your device.</p>
+            <div className="brand-upload-row">
+              <label className="upload lottie-upload">
+                Lottie file
+                <input type="file" accept=".json,.lottie,application/json,application/zip+dotlottie" onChange={(e) => { uploadLottie(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                <span>{project.lottie?.name || "Choose .json or .lottie"}</span>
+              </label>
+              {project.lottie?.dataUrl && <button type="button" className="remove-logo" onClick={() => update({ lottie: { ...(project.lottie || { width: 28, x: 76, y: 72, rotation: 0, opacity: 1, speed: 1, loop: true, visibility: "all" }), name: undefined, dataUrl: undefined } })}>Remove animation</button>}
+            </div>
+            {project.lottie?.dataUrl && <div className="style-grid lottie-grid">
+              <label>Show animation<select value={project.lottie.visibility} onChange={(e) => update({ lottie: { ...project.lottie!, visibility: e.target.value as LottieVisibility, sceneId: e.target.value === "current" ? scene.id : project.lottie?.sceneId } })}><option value="all">Throughout</option><option value="first">First scene only</option><option value="last">Last scene only</option><option value="current">This scene only</option></select></label>
+              <label>Loop<select value={project.lottie.loop ? "yes" : "no"} onChange={(e) => update({ lottie: { ...project.lottie!, loop: e.target.value === "yes" } })}><option value="yes">Loop continuously</option><option value="no">Play once</option></select></label>
+              <label>Width<div className="range-line"><input type="range" min="8" max="80" value={project.lottie.width} onChange={(e) => update({ lottie: { ...project.lottie!, width: +e.target.value } })} /><output>{project.lottie.width}%</output></div></label>
+              <label>Opacity<div className="range-line"><input type="range" min="0.1" max="1" step="0.05" value={project.lottie.opacity} onChange={(e) => update({ lottie: { ...project.lottie!, opacity: +e.target.value } })} /><output>{Math.round(project.lottie.opacity * 100)}%</output></div></label>
+              <label>Horizontal position<div className="range-line"><input type="range" min="0" max="100" value={project.lottie.x} onChange={(e) => update({ lottie: { ...project.lottie!, x: +e.target.value } })} /><output>{project.lottie.x}%</output></div></label>
+              <label>Vertical position<div className="range-line"><input type="range" min="0" max="100" value={project.lottie.y} onChange={(e) => update({ lottie: { ...project.lottie!, y: +e.target.value } })} /><output>{project.lottie.y}%</output></div></label>
+              <label>Playback speed<div className="range-line"><input type="range" min="0.25" max="3" step="0.25" value={project.lottie.speed} onChange={(e) => update({ lottie: { ...project.lottie!, speed: +e.target.value } })} /><output>{project.lottie.speed}×</output></div></label>
+              <label>Rotation<div className="range-line"><input type="range" min="-180" max="180" step="5" value={project.lottie.rotation} onChange={(e) => update({ lottie: { ...project.lottie!, rotation: +e.target.value } })} /><output>{project.lottie.rotation}°</output></div></label>
+            </div>}
+          </details>
           <details open className="brand-controls">
             <summary>Logo &amp; brand layer</summary>
             <div className="brand-upload-row">
@@ -1112,8 +1273,8 @@ export function MotionMintApp() {
             </p>
           </details>
           <button className="render-button" onClick={renderRequest}>
-            <span>Queue {project.output?.exportFormat || "MP4"} export</span>
-            <small>Saves this profile-aware production job to the backend</small>
+            <span>{immediateExportFormats.includes(project.output?.exportFormat || "") ? "Download" : "Request"} {project.output?.exportFormat || "MP4"} export</span>
+            <small>{immediateExportFormats.includes(project.output?.exportFormat || "") ? "Creates a private file on this device" : "Queues the job; downloadable video requires the renderer worker"}</small>
           </button>
           <p className="privacy">
             Uploads remain private in this browser session. Project text and
@@ -1133,6 +1294,7 @@ function Preview({
   underlay,
   featureMedia,
   logoUrl,
+  compositionRef,
   maskReplay,
 }: {
   project: Project;
@@ -1142,6 +1304,7 @@ function Preview({
   underlay?: string;
   featureMedia?: string;
   logoUrl?: string;
+  compositionRef: React.RefObject<HTMLDivElement | null>;
   maskReplay: number;
 }) {
   const inner = useRef<HTMLDivElement>(null);
@@ -1236,6 +1399,7 @@ function Preview({
   const logoIsVisible = brand.visibility === "all" || (brand.visibility === "first" && sceneIndex === 0) || (brand.visibility === "last" && sceneIndex === project.scenes.length - 1);
   return (
     <div
+      ref={compositionRef}
       className={`composition composition-${canvasShape} ${copyClass} ratio-${project.ratio.replace(":", "-")} motif-${template.motif} motion-${motionPreset} ${underlay ? "has-underlay" : ""} ${playing ? "is-playing" : "is-paused"}`}
       style={
         {
@@ -1253,7 +1417,7 @@ function Preview({
     >
       {underlay &&
         (isVideo ? (
-          <PreviewVideo src={underlay} playing={playing} grayscale={project.media.underlayGrayscale || 0} />
+          <PreviewVideo src={underlay} playing={playing} grayscale={project.media.underlayGrayscale || 0} playbackRate={project.media.underlayPlaybackRate ?? 1} />
         ) : (
           <img src={underlay} alt="Uploaded underlay preview" style={{ filter: `grayscale(${project.media.underlayGrayscale || 0}%)` }} />
         ))}
@@ -1265,6 +1429,7 @@ function Preview({
           isVideo={featureIsVideo}
           mask={project.media.mask}
           grayscale={project.media.featureGrayscale || 0}
+          playbackRate={project.media.featurePlaybackRate ?? 1}
           playing={playing}
         />
       )}
@@ -1280,6 +1445,15 @@ function Preview({
           color={project.theme.atmosphereColor || "#ffd67a"}
           intensity={project.theme.atmosphereIntensity ?? 0.75}
           playing={playing}
+        />
+      )}
+      {project.lottie?.dataUrl && (
+        <LottieLayer
+          settings={project.lottie}
+          playing={playing}
+          sceneIndex={sceneIndex}
+          sceneCount={project.scenes.length}
+          sceneId={scene.id}
         />
       )}
       <div className="composition-frame" />
@@ -1312,13 +1486,34 @@ function Preview({
   );
 }
 
-function PreviewVideo({ src, playing, grayscale }: { src: string; playing: boolean; grayscale: number }) {
+function LottieLayer({ settings, playing, sceneIndex, sceneCount, sceneId }: { settings: NonNullable<Project["lottie"]>; playing: boolean; sceneIndex: number; sceneCount: number; sceneId: string }) {
+  const player = useRef<DotLottie | null>(null);
+  const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const visible = settings.visibility === "all" || (settings.visibility === "first" && sceneIndex === 0) || (settings.visibility === "last" && sceneIndex === sceneCount - 1) || (settings.visibility === "current" && settings.sceneId === sceneId);
+  useEffect(() => {
+    const instance = player.current;
+    if (!instance) return;
+    instance.setSpeed(settings.speed);
+    instance.setLoop(settings.loop);
+    if (playing && visible && !reduceMotion) instance.play();
+    else instance.pause();
+  }, [playing, visible, settings.speed, settings.loop, reduceMotion]);
+  if (!visible || !settings.dataUrl) return null;
+  return (
+    <div className="lottie-layer" style={{ "--lottie-width": `${settings.width}%`, "--lottie-x": `${settings.x}%`, "--lottie-y": `${settings.y}%`, "--lottie-rotation": `${settings.rotation}deg`, "--lottie-opacity": settings.opacity } as React.CSSProperties}>
+      <DotLottieReact src={settings.dataUrl} autoplay={playing && !reduceMotion} loop={settings.loop} speed={settings.speed} dotLottieRefCallback={(instance) => { player.current = instance; }} aria-label={`Lottie animation: ${settings.name || "uploaded animation"}`} />
+    </div>
+  );
+}
+
+function PreviewVideo({ src, playing, grayscale, playbackRate }: { src: string; playing: boolean; grayscale: number; playbackRate: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (!videoRef.current) return;
+    videoRef.current.playbackRate = playbackRate;
     if (playing) videoRef.current.play().catch(() => {});
     else videoRef.current.pause();
-  }, [playing]);
+  }, [playbackRate, playing]);
   return <video ref={videoRef} src={src} autoPlay muted loop playsInline style={{ filter: `grayscale(${grayscale}%)` }} />;
 }
 
@@ -1336,12 +1531,14 @@ function MaskedMedia({
   isVideo,
   mask,
   grayscale,
+  playbackRate,
   playing,
 }: {
   src: string;
   isVideo: boolean;
   mask: Project["media"]["mask"];
   grayscale: number;
+  playbackRate: number;
   playing: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -1355,9 +1552,10 @@ function MaskedMedia({
   };
   useEffect(() => {
     if (!videoRef.current) return;
+    videoRef.current.playbackRate = playbackRate;
     if (playing) videoRef.current.play().catch(() => {});
     else videoRef.current.pause();
-  }, [playing]);
+  }, [playbackRate, playing]);
   return (
     <div
       className={`masked-media-system mask-${settings.preset} ${settings.enabled ? "mask-enabled" : "mask-disabled"} ${(settings.loop ?? true) ? "mask-loop" : "mask-once"} ${playing ? "mask-playing" : "mask-paused"}`}

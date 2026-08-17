@@ -14,9 +14,12 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.19.14",
     "@types/three": "^0.179.0",
     "drizzle-orm": "0.45.2",
     "gsap": "^3.13.0",
+    "html-to-image": "^1.11.13",
+    "jszip": "^3.10.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "three": "^0.179.1"
