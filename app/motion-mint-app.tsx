@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { DotLottieReact, type DotLottie } from "@lottiefiles/dotlottie-react";
 import { outputProfiles, profileById, profileByName } from "../lib/output-profiles";
 import { buildStandaloneHtml } from "../lib/html-export";
+import type { TemplateConfig } from "../lib/starter-templates";
 
 type Ratio = "9:16" | "1:1" | "16:9";
 type MotionPreset =
@@ -104,6 +105,9 @@ type Template = {
   motif: string;
   animation: string;
   colors: [string, string, string];
+  layout?: "editorial-left" | "centered-poster" | "split-stage" | "lower-third" | "asymmetric-grid";
+  typography?: keyof typeof typographyPresets;
+  design?: TemplateConfig["design"];
   scenes: Omit<Scene, "id">[];
   useCases?: string[];
   defaultProfileId?: string;
@@ -384,6 +388,7 @@ const presetForTemplate: Record<string, MotionPreset> = {
   business: "shapes",
   event: "momentum",
 };
+const presetForAnimation: Record<string, MotionPreset> = { rise: "horizon", slide: "shapes", reveal: "cascade", scale: "time", wipe: "footage", orbit: "momentum" };
 const uid = () => Math.random().toString(36).slice(2, 9);
 const safeFileName = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "motionmint-export";
 const webExportFormats = ["HTML5 ZIP", "Standalone HTML", "OBS Browser Source", "Embed"];
@@ -417,11 +422,11 @@ const makeProject = (template: Template): Project => ({
     text: template.colors[2],
     base: template.colors[0],
     overlay: 0.46,
-    font: "Editorial",
+    font: template.typography || "Editorial",
     atmosphere: "dust",
     atmosphereIntensity: 0.75,
     atmosphereColor: "#ffd67a",
-    motionPreset: presetForTemplate[template.id] || "horizon",
+    motionPreset: presetForTemplate[template.id] || presetForAnimation[template.animation] || "horizon",
   },
   media: {
     mask: {
@@ -1400,7 +1405,7 @@ function Preview({
   return (
     <div
       ref={compositionRef}
-      className={`composition composition-${canvasShape} ${copyClass} ratio-${project.ratio.replace(":", "-")} motif-${template.motif} motion-${motionPreset} ${underlay ? "has-underlay" : ""} ${playing ? "is-playing" : "is-paused"}`}
+      className={`composition composition-${canvasShape} ${copyClass} ratio-${project.ratio.replace(":", "-")} motif-${template.motif} layout-${template.layout || "editorial-left"} ${template.design ? "layout-generated" : ""} motion-${motionPreset} ${underlay ? "has-underlay" : ""} ${playing ? "is-playing" : "is-paused"}`}
       style={
         {
           "--accent": project.theme.accent,
@@ -1456,11 +1461,27 @@ function Preview({
           sceneId={scene.id}
         />
       )}
+      {template.design?.decorations.map((decoration, index) => (
+        <span
+          aria-hidden="true"
+          key={`${decoration.type}-${index}`}
+          className={`generated-decoration generated-decoration-${decoration.animation}`}
+          style={{
+            left: `${decoration.x}%`, top: `${decoration.y}%`, width: `${decoration.width}%`, height: `${decoration.height}%`,
+            opacity: decoration.opacity, borderRadius: decoration.type === "circle" ? "50%" : `${decoration.radius}%`,
+            background: `var(--${decoration.color})`, "--decoration-rotation": `${decoration.rotation}deg`,
+          } as React.CSSProperties}
+        />
+      ))}
       <div className="composition-frame" />
       <div className="composition-label">
         {project.category} · {project.title}
       </div>
-      <div ref={inner} className="scene-content">
+      <div ref={inner} className="scene-content" style={template.design ? {
+        left: `${template.design.contentX}%`, right: "auto", top: `${template.design.contentY}%`, width: `${template.design.contentWidth}%`,
+        textAlign: template.design.textAlign, "--generated-headline-size": `${9 * template.design.headlineScale}cqw`,
+        "--generated-secondary-size": `${6 * template.design.secondaryScale}cqw`,
+      } as React.CSSProperties : undefined}>
         <p>
           {String(sceneIndex + 1).padStart(2, "0")} /{" "}
           {String(project.scenes.length).padStart(2, "0")}

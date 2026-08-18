@@ -2,6 +2,20 @@ export type TemplateConfig = {
   id: string; name: string; category: string; description: string;
   ratios: Array<"9:16" | "1:1" | "16:9">; duration: number;
   motif: string; animation: string; colors: [string, string, string];
+  layout?: "editorial-left" | "centered-poster" | "split-stage" | "lower-third" | "asymmetric-grid";
+  typography?: "Editorial" | "Modern" | "Classic" | "Display" | "Humanist" | "Geometric" | "Monospace" | "Arabic Editorial";
+  design?: {
+    contentX: number; contentY: number; contentWidth: number;
+    textAlign: "left" | "center" | "right";
+    headlineScale: number; secondaryScale: number;
+    decorations: Array<{
+      type: "circle" | "rectangle" | "line";
+      x: number; y: number; width: number; height: number;
+      rotation: number; opacity: number; radius: number;
+      color: "base" | "accent" | "text";
+      animation: "float" | "spin" | "pulse" | "drift" | "none";
+    }>;
+  };
   scenes: Array<{ primary: string; secondary: string; duration: number }>;
   useCases?: string[];
   defaultProfileId?: string;
