@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import gsap from "gsap";
 import * as THREE from "three";
 import { DotLottieReact, type DotLottie } from "@lottiefiles/dotlottie-react";
+import Link from "next/link";
 import { outputProfiles, profileById, profileByName } from "../lib/output-profiles";
 import { buildStandaloneHtml } from "../lib/html-export";
 import type { TemplateConfig } from "../lib/starter-templates";
@@ -696,9 +697,9 @@ export function MotionMintApp() {
     return (
       <main className="shell gallery">
         <header className="topbar">
-          <span className="brand">
+          <Link className="brand" href="/" aria-label="MotionMint home">
             Motion<span>Mint</span>
-          </span>
+          </Link>
           <div className="header-actions">
             <span className="local-pill">Private · on device</span>
             <button className="avatar" aria-label="Account placeholder">

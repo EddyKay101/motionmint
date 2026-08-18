@@ -130,8 +130,8 @@ export function AdminApp() {
   return (
     <main className="admin-shell">
       <header className="admin-topbar">
-        <div><Link className="brand" href="/">Motion<span>Mint</span></Link><span className="admin-label">Template Admin</span></div>
-        <div className="admin-actions"><span className="dev-warning">Local testing only · no login</span><Link href="/">Open creator ↗</Link></div>
+        <div><span className="brand">Motion<span>Mint</span></span><span className="admin-label">Template Admin</span></div>
+        <div className="admin-actions"><span className="dev-warning">Local testing only · no login</span><Link href="/create">Open creator ↗</Link></div>
       </header>
       <div className="admin-layout">
         <aside className="admin-sidebar">

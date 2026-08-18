@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { MotionMintApp } from "./motion-mint-app";
+import { Showcase } from "./showcase";
 
 export const metadata: Metadata = {
-  title: "MotionMint — animated social content studio",
-  description: "Create animated social banners and lyric videos from any device.",
+  title: "MotionMint — make your message move",
+  description: "Create animated social posts, display ads, lyric videos and digital campaigns from one mobile-first studio.",
 };
 
 export default function Home() {
-  return <MotionMintApp />;
+  return <Showcase />;
 }
