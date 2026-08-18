@@ -13,7 +13,7 @@ async function seedStarterTemplates() {
 export async function GET(request: Request) {
   try {
     await seedStarterTemplates();
-    const showAll = new URL(request.url).searchParams.get("scope") === "admin" && canManageTemplates(request);
+    const showAll = new URL(request.url).searchParams.get("scope") === "admin" && await canManageTemplates(request);
     const base = getDb().select().from(templates);
     const rows = showAll ? await base.orderBy(asc(templates.category), asc(templates.name)) : await base.where(eq(templates.status, "published")).orderBy(asc(templates.category), asc(templates.name));
     return Response.json({ templates: rows.map(({ configJson, ...row }) => ({ ...row, config: JSON.parse(configJson) })) });
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!canManageTemplates(request)) return apiError("Template administration is only available locally until authentication is configured.", 403);
+  if (!await canManageTemplates(request)) return apiError("Administrator sign-in is required.", 403);
   try {
     const payload = (await request.json()) as { id?: string; name?: string; category?: string; status?: "draft" | "published"; config?: Record<string, unknown> };
     const id = payload.id?.trim().toLowerCase();

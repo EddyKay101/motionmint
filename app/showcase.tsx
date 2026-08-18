@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { authClient } from "../lib/auth-client";
 
 const formats = [
   ["Social stories", "9:16", "Launch, announce and inspire in full-screen motion."],
@@ -12,11 +13,12 @@ const categories = ["Music & lyrics", "Business", "Faith", "Events", "Wellness",
 function Arrow() { return <span aria-hidden="true">↗</span>; }
 
 export function Showcase() {
+  const { data: session } = authClient.useSession();
   return <main className="showcase">
     <header className="showcase-nav">
       <Link className="showcase-brand" href="/" aria-label="MotionMint home">Motion<span>Mint</span><i /></Link>
       <nav aria-label="Main navigation"><a href="#possibilities">Possibilities</a><a href="#how">How it works</a><a href="#work">Showcase</a></nav>
-      <Link className="showcase-nav-cta" href="/create">Open studio <Arrow /></Link>
+      <div className="showcase-nav-actions"><Link className="showcase-auth-link" href={session ? "/account" : "/login"}>{session ? "Account" : "Sign in"}</Link><Link className="showcase-nav-cta" href="/create">Open studio <Arrow /></Link></div>
     </header>
 
     <section className="showcase-hero">

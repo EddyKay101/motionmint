@@ -5,7 +5,7 @@ import { generateOpenAITemplateConcepts } from "../../../../lib/openai-template-
 import { env } from "cloudflare:workers";
 
 export async function POST(request: Request) {
-  if (!canManageTemplates(request)) return apiError("Template Studio is restricted to administrators.", 403);
+  if (!await canManageTemplates(request)) return apiError("Template Studio is restricted to administrators.", 403);
   try {
     const brief = (await request.json()) as TemplateStudioBrief;
     const runtime = env as unknown as Record<string, unknown>;

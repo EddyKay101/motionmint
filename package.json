@@ -16,6 +16,7 @@
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.14",
     "@types/three": "^0.179.0",
+    "better-auth": "^1.7.0",
     "drizzle-orm": "0.45.2",
     "gsap": "^3.13.0",
     "html-to-image": "^1.11.13",

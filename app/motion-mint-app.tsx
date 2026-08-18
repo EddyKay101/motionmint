@@ -8,6 +8,7 @@ import Link from "next/link";
 import { outputProfiles, profileById, profileByName } from "../lib/output-profiles";
 import { buildStandaloneHtml } from "../lib/html-export";
 import type { TemplateConfig } from "../lib/starter-templates";
+import { authClient } from "../lib/auth-client";
 
 type Ratio = "9:16" | "1:1" | "16:9";
 type MotionPreset =
@@ -464,6 +465,7 @@ const makeProject = (template: Template): Project => ({
 });
 
 export function MotionMintApp() {
+  const { data: authSession } = authClient.useSession();
   const [view, setView] = useState<"gallery" | "editor">("gallery");
   const [filter, setFilter] = useState("All");
   const [useCaseFilter, setUseCaseFilter] = useState("All uses");
@@ -701,10 +703,10 @@ export function MotionMintApp() {
             Motion<span>Mint</span>
           </Link>
           <div className="header-actions">
-            <span className="local-pill">Private · on device</span>
-            <button className="avatar" aria-label="Account placeholder">
-              EN
-            </button>
+            <span className="local-pill">{authSession ? "Account · cloud ready" : "Private · on device"}</span>
+            <Link className="avatar" href={authSession ? "/account" : "/login"} aria-label={authSession ? "Open account" : "Sign in"}>
+              {authSession?.user.name?.slice(0, 2).toUpperCase() || "IN"}
+            </Link>
           </div>
         </header>
         <section className="hero">

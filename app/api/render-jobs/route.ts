@@ -4,7 +4,7 @@ import { projects, renderJobs } from "../../../db/schema";
 import { apiError, databaseError, ownerKeyFrom } from "../../../lib/backend";
 
 export async function GET(request: Request) {
-  const ownerKey = ownerKeyFrom(request);
+  const ownerKey = await ownerKeyFrom(request);
   if (!ownerKey) return apiError("A valid device owner key is required.", 401);
   try {
     const rows = await getDb().select().from(renderJobs).where(eq(renderJobs.ownerKey, ownerKey)).orderBy(desc(renderJobs.createdAt)).limit(20);
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const ownerKey = ownerKeyFrom(request);
+  const ownerKey = await ownerKeyFrom(request);
   if (!ownerKey) return apiError("A valid device owner key is required.", 401);
   try {
     const payload = (await request.json()) as { projectId?: string; ratio?: string; fps?: number; profileId?: string; sizeId?: string; format?: string };

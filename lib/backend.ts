@@ -1,4 +1,5 @@
 export type JsonObject = Record<string, unknown>;
+import { getAuth } from "./auth";
 
 export function isProjectPayload(value: unknown): value is JsonObject {
   if (!value || typeof value !== "object") return false;
@@ -6,7 +7,9 @@ export function isProjectPayload(value: unknown): value is JsonObject {
   return project.schemaVersion === 1 && typeof project.id === "string" && project.id.length > 0 && typeof project.title === "string" && typeof project.templateId === "string" && Array.isArray(project.scenes) && project.scenes.length > 0 && project.scenes.length <= 50 && typeof project.theme === "object" && project.theme !== null;
 }
 
-export function ownerKeyFrom(request: Request) {
+export async function ownerKeyFrom(request: Request) {
+  const session = await getAuth().api.getSession({ headers: request.headers });
+  if (session?.user.id) return `user_${session.user.id}`;
   const key = request.headers.get("x-motionmint-owner")?.trim() ?? "";
   return /^[a-zA-Z0-9_-]{20,120}$/.test(key) ? key : null;
 }

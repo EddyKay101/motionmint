@@ -5,7 +5,7 @@ import { apiError, databaseError } from "../../../../lib/backend";
 import { canManageTemplates } from "../../../../lib/admin-access";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
-  if (!canManageTemplates(request)) return apiError("Template administration is only available locally until authentication is configured.", 403);
+  if (!await canManageTemplates(request)) return apiError("Administrator sign-in is required.", 403);
   try {
     const { id } = await context.params;
     const payload = (await request.json()) as { name?: string; category?: string; status?: "draft" | "published" | "archived"; config?: Record<string, unknown> };

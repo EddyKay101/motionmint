@@ -4,7 +4,7 @@ import { projects } from "../../../../db/schema";
 import { apiError, databaseError, ownerKeyFrom } from "../../../../lib/backend";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
-  const ownerKey = ownerKeyFrom(request);
+  const ownerKey = await ownerKeyFrom(request);
   if (!ownerKey) return apiError("A valid device owner key is required.", 401);
   try {
     const { id } = await context.params;
@@ -15,7 +15,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
-  const ownerKey = ownerKeyFrom(request);
+  const ownerKey = await ownerKeyFrom(request);
   if (!ownerKey) return apiError("A valid device owner key is required.", 401);
   try {
     const { id } = await context.params;

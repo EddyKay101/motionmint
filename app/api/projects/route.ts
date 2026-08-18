@@ -4,7 +4,7 @@ import { projects } from "../../../db/schema";
 import { apiError, databaseError, isProjectPayload, ownerKeyFrom } from "../../../lib/backend";
 
 export async function GET(request: Request) {
-  const ownerKey = ownerKeyFrom(request);
+  const ownerKey = await ownerKeyFrom(request);
   if (!ownerKey) return apiError("A valid device owner key is required.", 401);
   try {
     const rows = await getDb().select({ id: projects.id, title: projects.title, templateId: projects.templateId, projectJson: projects.projectJson, updatedAt: projects.updatedAt }).from(projects).where(eq(projects.ownerKey, ownerKey)).orderBy(desc(projects.updatedAt)).limit(50);
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const ownerKey = ownerKeyFrom(request);
+  const ownerKey = await ownerKeyFrom(request);
   if (!ownerKey) return apiError("A valid device owner key is required.", 401);
   try {
     const project = await request.json();
