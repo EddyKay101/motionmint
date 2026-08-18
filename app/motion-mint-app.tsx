@@ -540,7 +540,14 @@ const makeProject = (template: Template): Project => ({
       presetForTemplate[template.id] ||
       presetForAnimation[template.animation] ||
       "horizon",
-    cascadeColors: [template.colors[1], "#ef6b66", "#f2c84b", "#6fccc7", "#8c72ca", template.colors[1]],
+    cascadeColors: [
+      template.colors[1],
+      "#ef6b66",
+      "#f2c84b",
+      "#6fccc7",
+      "#8c72ca",
+      template.colors[1],
+    ],
   },
   media: {
     mask: {
@@ -2366,14 +2373,39 @@ export function MotionMintApp() {
                 <fieldset className="cascade-colors">
                   <legend>Cascade colors</legend>
                   <div className="color-grid">
-                    {(project.theme.cascadeColors || [project.theme.accent, "#ef6b66", "#f2c84b", "#6fccc7", "#8c72ca", project.theme.accent]).map((color, index) => (
+                    {(
+                      project.theme.cascadeColors || [
+                        project.theme.accent,
+                        "#ef6b66",
+                        "#f2c84b",
+                        "#6fccc7",
+                        "#8c72ca",
+                        project.theme.accent,
+                      ]
+                    ).map((color, index) => (
                       <label key={index}>
                         <span>Bar {index + 1}</span>
                         <input
                           type="color"
                           value={color}
                           onChange={(e) => {
-                            const newColors = [...(project.theme.cascadeColors || [project.theme.accent, "#ef6b66", "#f2c84b", "#6fccc7", "#8c72ca", project.theme.accent])] as [string, string, string, string, string, string];
+                            const newColors = [
+                              ...(project.theme.cascadeColors || [
+                                project.theme.accent,
+                                "#ef6b66",
+                                "#f2c84b",
+                                "#6fccc7",
+                                "#8c72ca",
+                                project.theme.accent,
+                              ]),
+                            ] as [
+                              string,
+                              string,
+                              string,
+                              string,
+                              string,
+                              string,
+                            ];
                             newColors[index] = e.target.value;
                             update({
                               theme: {
@@ -2666,9 +2698,9 @@ function Preview({
           playing={playing}
         />
       )}
-      <PersistentMotion 
-        preset={motionPreset} 
-        sceneIndex={sceneIndex} 
+      <PersistentMotion
+        preset={motionPreset}
+        sceneIndex={sceneIndex}
         cascadeColors={project.theme.cascadeColors}
       />
       {(project.theme.atmosphere || "none") !== "none" && (
