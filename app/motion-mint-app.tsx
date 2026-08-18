@@ -1,21 +1,41 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import gsap from "gsap";
 import * as THREE from "three";
 import { DotLottieReact, type DotLottie } from "@lottiefiles/dotlottie-react";
 import Link from "next/link";
-import { outputProfiles, profileById, profileByName } from "../lib/output-profiles";
+import {
+  outputProfiles,
+  profileById,
+  profileByName,
+} from "../lib/output-profiles";
 import { buildStandaloneHtml } from "../lib/html-export";
 import type { TemplateConfig } from "../lib/starter-templates";
 import { authClient } from "../lib/auth-client";
 
 type Ratio = "9:16" | "1:1" | "16:9";
 type MotionPreset =
-  "horizon" | "shapes" | "momentum" | "time" | "cascade" | "footage";
+  | "horizon"
+  | "shapes"
+  | "momentum"
+  | "time"
+  | "cascade"
+  | "footage";
 type AtmospherePreset = "none" | "dust" | "stars" | "rain" | "aurora";
 type MaskPreset = "clock" | "triangle" | "circle" | "diagonal";
-type LogoPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "custom";
+type LogoPosition =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right"
+  | "custom";
 type LogoVisibility = "all" | "first" | "last";
 type LogoAnimation = "none" | "fade" | "slide" | "scale";
 type LottieVisibility = "all" | "first" | "last" | "current";
@@ -107,13 +127,23 @@ type Template = {
   motif: string;
   animation: string;
   colors: [string, string, string];
-  layout?: "editorial-left" | "centered-poster" | "split-stage" | "lower-third" | "asymmetric-grid";
+  layout?:
+    | "editorial-left"
+    | "centered-poster"
+    | "split-stage"
+    | "lower-third"
+    | "asymmetric-grid";
   typography?: keyof typeof typographyPresets;
   design?: TemplateConfig["design"];
   scenes: Omit<Scene, "id">[];
   useCases?: string[];
   defaultProfileId?: string;
-  brandDefaults?: { required?: boolean; position?: LogoPosition; width?: number; animation?: LogoAnimation };
+  brandDefaults?: {
+    required?: boolean;
+    position?: LogoPosition;
+    width?: number;
+    animation?: LogoAnimation;
+  };
 };
 
 const starterTemplates: Template[] = [
@@ -276,15 +306,65 @@ const useCaseCategories = [
   "Creator templates",
 ];
 const defaultUseCases: Record<string, string[]> = {
-  hope: ["Social posts", "Digital signage", "Livestream graphics", "Fundraising campaigns", "Educational content", "Creator templates"],
-  weekly: ["Social posts", "Website heroes", "Presentations", "Email & messaging", "Educational content", "Creator templates"],
-  faith: ["Display advertising", "Digital signage", "Event screens", "Livestream graphics", "Digital invitations", "Fundraising campaigns", "Creator templates"],
-  motivation: ["Social posts", "Digital signage", "Website heroes", "Presentations", "Email & messaging", "Educational content", "Creator templates"],
-  business: ["Display advertising", "Social posts", "Digital signage", "Website heroes", "Email & messaging", "Product advertising", "Creator templates"],
-  event: ["Display advertising", "Social posts", "Digital signage", "Event screens", "Livestream graphics", "Music visualisers", "Digital invitations", "Fundraising campaigns", "Creator templates"],
+  hope: [
+    "Social posts",
+    "Digital signage",
+    "Livestream graphics",
+    "Fundraising campaigns",
+    "Educational content",
+    "Creator templates",
+  ],
+  weekly: [
+    "Social posts",
+    "Website heroes",
+    "Presentations",
+    "Email & messaging",
+    "Educational content",
+    "Creator templates",
+  ],
+  faith: [
+    "Display advertising",
+    "Digital signage",
+    "Event screens",
+    "Livestream graphics",
+    "Digital invitations",
+    "Fundraising campaigns",
+    "Creator templates",
+  ],
+  motivation: [
+    "Social posts",
+    "Digital signage",
+    "Website heroes",
+    "Presentations",
+    "Email & messaging",
+    "Educational content",
+    "Creator templates",
+  ],
+  business: [
+    "Display advertising",
+    "Social posts",
+    "Digital signage",
+    "Website heroes",
+    "Email & messaging",
+    "Product advertising",
+    "Creator templates",
+  ],
+  event: [
+    "Display advertising",
+    "Social posts",
+    "Digital signage",
+    "Event screens",
+    "Livestream graphics",
+    "Music visualisers",
+    "Digital invitations",
+    "Fundraising campaigns",
+    "Creator templates",
+  ],
 };
 const usesForTemplate = (template: Template) =>
-  template.useCases?.length ? template.useCases : defaultUseCases[template.id] || ["Creator templates"];
+  template.useCases?.length
+    ? template.useCases
+    : defaultUseCases[template.id] || ["Creator templates"];
 const ratioForSize = (width: number, height: number): Ratio => {
   const value = width / height;
   return value < 0.8 ? "9:16" : value > 1.35 ? "16:9" : "1:1";
@@ -294,7 +374,9 @@ const ownerStorageKey = "motionmint.owner.v1";
 const getOwnerKey = () => {
   let key = localStorage.getItem(ownerStorageKey);
   if (!key) {
-    key = crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "");
+    key =
+      crypto.randomUUID().replaceAll("-", "") +
+      crypto.randomUUID().replaceAll("-", "");
     localStorage.setItem(ownerStorageKey, key);
   }
   return key;
@@ -303,7 +385,11 @@ const restoreProject = () => {
   if (typeof window !== "undefined") {
     const raw = localStorage.getItem(storageKey);
     if (raw) {
-      try { return JSON.parse(raw) as Project; } catch { /* use a clean project */ }
+      try {
+        return JSON.parse(raw) as Project;
+      } catch {
+        /* use a clean project */
+      }
     }
   }
   return makeProject(starterTemplates[0]);
@@ -390,12 +476,33 @@ const presetForTemplate: Record<string, MotionPreset> = {
   business: "shapes",
   event: "momentum",
 };
-const presetForAnimation: Record<string, MotionPreset> = { rise: "horizon", slide: "shapes", reveal: "cascade", scale: "time", wipe: "footage", orbit: "momentum" };
+const presetForAnimation: Record<string, MotionPreset> = {
+  rise: "horizon",
+  slide: "shapes",
+  reveal: "cascade",
+  scale: "time",
+  wipe: "footage",
+  orbit: "momentum",
+};
 const uid = () => Math.random().toString(36).slice(2, 9);
-const safeFileName = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "motionmint-export";
-const webExportFormats = ["HTML5 ZIP", "Standalone HTML", "OBS Browser Source", "Embed"];
+const safeFileName = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "motionmint-export";
+const webExportFormats = [
+  "HTML5 ZIP",
+  "Standalone HTML",
+  "OBS Browser Source",
+  "Embed",
+];
 const staticExportFormats = ["PNG", "Fallback JPG"];
-const immediateExportFormats = [...webExportFormats, ...staticExportFormats, "Template package"];
+const immediateExportFormats = [
+  ...webExportFormats,
+  ...staticExportFormats,
+  "Template package",
+];
 const asDataUrl = async (url?: string) => {
   if (!url) return "";
   const blob = await fetch(url).then((response) => response.blob());
@@ -428,7 +535,10 @@ const makeProject = (template: Template): Project => ({
     atmosphere: "dust",
     atmosphereIntensity: 0.75,
     atmosphereColor: "#ffd67a",
-    motionPreset: presetForTemplate[template.id] || presetForAnimation[template.animation] || "horizon",
+    motionPreset:
+      presetForTemplate[template.id] ||
+      presetForAnimation[template.animation] ||
+      "horizon",
   },
   media: {
     mask: {
@@ -491,7 +601,9 @@ export function MotionMintApp() {
     fetch("/api/templates")
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then((result: { templates?: Array<{ config?: Template }> }) => {
-        const remote = result.templates?.map((item) => item.config).filter((item): item is Template => Boolean(item?.id && item?.name));
+        const remote = result.templates
+          ?.map((item) => item.config)
+          .filter((item): item is Template => Boolean(item?.id && item?.name));
         if (!remote?.length) return;
         setTemplates((current) => {
           const merged = new Map(current.map((item) => [item.id, item]));
@@ -509,10 +621,15 @@ export function MotionMintApp() {
       try {
         const response = await fetch("/api/projects", {
           method: "PUT",
-          headers: { "content-type": "application/json", "x-motionmint-owner": getOwnerKey() },
+          headers: {
+            "content-type": "application/json",
+            "x-motionmint-owner": getOwnerKey(),
+          },
           body: JSON.stringify(project),
         });
-        setStatus(response.ok ? "Saved locally + synced" : "Saved on this device");
+        setStatus(
+          response.ok ? "Saved locally + synced" : "Saved on this device",
+        );
       } catch {
         setStatus("Saved on this device · offline");
       }
@@ -527,9 +644,19 @@ export function MotionMintApp() {
     }));
   const choose = (t: Template) => {
     const next = makeProject(t);
-    const profile = useCaseFilter === "All uses" ? (t.defaultProfileId ? profileById(t.defaultProfileId) : profileByName(usesForTemplate(t)[0])) : profileByName(useCaseFilter);
+    const profile =
+      useCaseFilter === "All uses"
+        ? t.defaultProfileId
+          ? profileById(t.defaultProfileId)
+          : profileByName(usesForTemplate(t)[0])
+        : profileByName(useCaseFilter);
     const size = profile.sizes[0];
-    next.output = { profileId: profile.id, sizeId: size.id, exportFormat: profile.exports[0], transparent: false };
+    next.output = {
+      profileId: profile.id,
+      sizeId: size.id,
+      exportFormat: profile.exports[0],
+      transparent: false,
+    };
     next.ratio = ratioForSize(size.width, size.height);
     setProject(next);
     setSceneIndex(0);
@@ -540,9 +667,16 @@ export function MotionMintApp() {
   const template =
     templates.find((t) => t.id === project.templateId) || templates[0];
   const activeProfile = profileById(project.output?.profileId);
-  const availableProfiles = outputProfiles.filter((profile) => usesForTemplate(template).includes(profile.name));
-  const activeSize = activeProfile.sizes.find((size) => size.id === project.output?.sizeId) || activeProfile.sizes[0];
-  const totalDuration = project.scenes.reduce((sum, item) => sum + item.duration, 0);
+  const availableProfiles = outputProfiles.filter((profile) =>
+    usesForTemplate(template).includes(profile.name),
+  );
+  const activeSize =
+    activeProfile.sizes.find((size) => size.id === project.output?.sizeId) ||
+    activeProfile.sizes[0];
+  const totalDuration = project.scenes.reduce(
+    (sum, item) => sum + item.duration,
+    0,
+  );
   const updateScene = (patch: Partial<Scene>) =>
     update({
       scenes: project.scenes.map((s, i) =>
@@ -566,12 +700,24 @@ export function MotionMintApp() {
     if (kind === "underlay") {
       if (underlay) URL.revokeObjectURL(underlay);
       setUnderlay(url);
-      update({ media: { ...project.media, underlayName: file.name, underlayType: file.type } });
+      update({
+        media: {
+          ...project.media,
+          underlayName: file.name,
+          underlayType: file.type,
+        },
+      });
     } else if (kind === "feature") {
       if (featureMedia) URL.revokeObjectURL(featureMedia);
       setFeatureMedia(url);
       setMaskReplay((value) => value + 1);
-      update({ media: { ...project.media, featureName: file.name, featureType: file.type } });
+      update({
+        media: {
+          ...project.media,
+          featureName: file.name,
+          featureType: file.type,
+        },
+      });
     } else if (kind === "logo") {
       if (logoUrl) URL.revokeObjectURL(logoUrl);
       setLogoUrl(url);
@@ -596,19 +742,57 @@ export function MotionMintApp() {
     reader.onerror = () => setStatus("Could not read that Lottie file");
     reader.onload = () => {
       const dataUrl = String(reader.result || "");
-      update({ lottie: { ...(project.lottie || { width: 28, x: 76, y: 72, rotation: 0, opacity: 1, speed: 1, loop: true, visibility: "all" }), name: file.name, dataUrl } });
+      update({
+        lottie: {
+          ...(project.lottie || {
+            width: 28,
+            x: 76,
+            y: 72,
+            rotation: 0,
+            opacity: 1,
+            speed: 1,
+            loop: true,
+            visibility: "all",
+          }),
+          name: file.name,
+          dataUrl,
+        },
+      });
       setStatus("Lottie animation added · saved locally");
     };
     reader.readAsDataURL(file);
   };
   const downloadWebExport = async () => {
     setStatus("Preparing self-contained web export…");
-    const [background, feature, logo] = await Promise.all([asDataUrl(underlay), asDataUrl(featureMedia), asDataUrl(logoUrl)]);
-    const payload = JSON.stringify({ project, background, feature, logo, width: activeSize.width, height: activeSize.height }).replace(/</g, "\\u003c");
+    const [background, feature, logo] = await Promise.all([
+      asDataUrl(underlay),
+      asDataUrl(featureMedia),
+      asDataUrl(logoUrl),
+    ]);
+    const payload = JSON.stringify({
+      project,
+      background,
+      feature,
+      logo,
+      width: activeSize.width,
+      height: activeSize.height,
+    }).replace(/</g, "\\u003c");
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${project.title.replace(/[<>&"]/g, "")}</title><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:Arial,sans-serif}#mm{position:relative;width:100%;height:100%;overflow:hidden;color:var(--text);background:var(--base)}.media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(var(--gray))}.shade{position:absolute;inset:0;background:linear-gradient(145deg,color-mix(in srgb,var(--base),transparent 48%),rgba(0,0,0,var(--overlay)))}.feature{position:absolute;right:5%;bottom:7%;width:42%;height:54%;object-fit:cover;clip-path:circle(48%);filter:grayscale(var(--feature-gray));opacity:.92}.copy{position:absolute;z-index:2;left:8%;right:8%;top:50%;transform:translateY(-50%);animation:enter .8s ease both}.copy h1{margin:0;max-width:80%;font:700 clamp(28px,7vw,110px)/.95 Georgia,serif}.copy h2{margin:4% 0 0;max-width:76%;font:500 clamp(18px,4vw,58px)/1.15 Georgia,serif;text-align:start}.logo{position:absolute;z-index:3;top:7%;right:7%;width:18%;max-height:20%;object-fit:contain}.progress{position:absolute;z-index:4;bottom:0;left:0;height:4px;background:var(--accent);animation:progress var(--duration) linear both}@keyframes enter{from{opacity:0;transform:translateY(-42%)}to{opacity:1;transform:translateY(-50%)}}@keyframes progress{from{width:0}to{width:100%}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}</style></head><body><main id="mm"></main><script type="application/json" id="data">${payload}</script><script>(()=>{const d=JSON.parse(document.getElementById('data').textContent),p=d.project,root=document.getElementById('mm');root.style.cssText='--base:'+p.theme.base+';--accent:'+p.theme.accent+';--text:'+p.theme.text+';--overlay:'+p.theme.overlay+';--gray:'+(p.media.underlayGrayscale||0)+'%;--feature-gray:'+(p.media.featureGrayscale||0)+'%';let i=0,media=(src,name,cls)=>!src?'':/video[/]/.test(name||'')||/[.](mp4|webm|mov|m4v)$/i.test(name||'')?'<video class="'+cls+'" src="'+src+'" autoplay muted loop playsinline></video>':'<img class="'+cls+'" src="'+src+'" alt="">';function show(){const s=p.scenes[i];root.innerHTML=media(d.background,p.media.underlayType||p.media.underlayName,'media')+'<div class="shade"></div>'+media(d.feature,p.media.featureType||p.media.featureName,'feature')+'<section class="copy"><h1 dir="auto"></h1><h2 dir="auto"></h2></section>'+(d.logo?'<img class="logo" src="'+d.logo+'" alt="">':'')+'<i class="progress"></i>';root.style.setProperty('--duration',s.duration+'s');root.querySelector('h1').textContent=s.primary;root.querySelector('h2').textContent=s.secondary||'';root.querySelectorAll('video').forEach((v,n)=>v.playbackRate=n?(p.media.featurePlaybackRate||1):(p.media.underlayPlaybackRate||1));setTimeout(()=>{i=(i+1)%p.scenes.length;show()},s.duration*1000)}show()})()</script></body></html>`;
     const clickTagSetup = `window.clickTag=(p.output&&p.output.clickThroughUrl)||'';if(window.clickTag){root.style.cursor='pointer';root.addEventListener('click',()=>window.open(window.clickTag,'_blank'))}`;
-    const exportHtml = html.replace("let i=0,media=", `${clickTagSetup};let i=0,media=`);
-    const fullExportHtml = buildStandaloneHtml({ project, template, background, feature, logo, width: activeSize.width, height: activeSize.height }) || exportHtml;
+    const exportHtml = html.replace(
+      "let i=0,media=",
+      `${clickTagSetup};let i=0,media=`,
+    );
+    const fullExportHtml =
+      buildStandaloneHtml({
+        project,
+        template,
+        background,
+        feature,
+        logo,
+        width: activeSize.width,
+        height: activeSize.height,
+      }) || exportHtml;
     const format = project.output?.exportFormat || "Standalone HTML";
     let downloadBlob: Blob;
     let extension: "html" | "zip" = "html";
@@ -616,10 +800,32 @@ export function MotionMintApp() {
       const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
       zip.file("index.html", fullExportHtml);
-      zip.file("manifest.json", JSON.stringify({ name: project.title, format: "HTML5", width: activeSize.width, height: activeSize.height, clickTag: project.output?.clickThroughUrl || "", duration: totalDuration, generatedBy: "MotionMint" }, null, 2));
+      zip.file(
+        "manifest.json",
+        JSON.stringify(
+          {
+            name: project.title,
+            format: "HTML5",
+            width: activeSize.width,
+            height: activeSize.height,
+            clickTag: project.output?.clickThroughUrl || "",
+            duration: totalDuration,
+            generatedBy: "MotionMint",
+          },
+          null,
+          2,
+        ),
+      );
       zip.file("project.json", JSON.stringify(project, null, 2));
-      zip.file("README.txt", "MotionMint HTML5 banner\n\nOpen index.html in a browser or upload the ZIP to a compatible HTML5 advertising platform. Uploaded customer media is embedded privately inside index.html. The click-through destination is exposed as window.clickTag.\n");
-      downloadBlob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+      zip.file(
+        "README.txt",
+        "MotionMint HTML5 banner\n\nOpen index.html in a browser or upload the ZIP to a compatible HTML5 advertising platform. Uploaded customer media is embedded privately inside index.html. The click-through destination is exposed as window.clickTag.\n",
+      );
+      downloadBlob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+      });
       extension = "zip";
     } else {
       downloadBlob = new Blob([fullExportHtml], { type: "text/html" });
@@ -627,19 +833,42 @@ export function MotionMintApp() {
     const url = URL.createObjectURL(downloadBlob);
     const link = document.createElement("a");
     link.href = url;
-    const suffix = format === "OBS Browser Source" ? "obs" : format === "HTML5 ZIP" ? "html5-ad" : "web";
+    const suffix =
+      format === "OBS Browser Source"
+        ? "obs"
+        : format === "HTML5 ZIP"
+          ? "html5-ad"
+          : "web";
     link.download = `${safeFileName(project.title)}-${suffix}.${extension}`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus(format === "HTML5 ZIP" ? "HTML5 ZIP downloaded" : "Self-contained HTML downloaded");
+    setStatus(
+      format === "HTML5 ZIP"
+        ? "HTML5 ZIP downloaded"
+        : "Self-contained HTML downloaded",
+    );
   };
   const downloadStaticExport = async () => {
     if (!compositionRef.current) throw new Error("Preview unavailable");
     const { toJpeg, toPng } = await import("html-to-image");
     const format = project.output?.exportFormat || "PNG";
     setStatus(`Preparing ${format}…`);
-    const options = { width: activeSize.width, height: activeSize.height, canvasWidth: activeSize.width, canvasHeight: activeSize.height, pixelRatio: 1, cacheBust: true };
-    const dataUrl = format === "Fallback JPG" ? await toJpeg(compositionRef.current, { ...options, quality: 0.92, backgroundColor: project.theme.base || template.colors[0] }) : await toPng(compositionRef.current, options);
+    const options = {
+      width: activeSize.width,
+      height: activeSize.height,
+      canvasWidth: activeSize.width,
+      canvasHeight: activeSize.height,
+      pixelRatio: 1,
+      cacheBust: true,
+    };
+    const dataUrl =
+      format === "Fallback JPG"
+        ? await toJpeg(compositionRef.current, {
+            ...options,
+            quality: 0.92,
+            backgroundColor: project.theme.base || template.colors[0],
+          })
+        : await toPng(compositionRef.current, options);
     const link = document.createElement("a");
     link.href = dataUrl;
     link.download = `${safeFileName(project.title)}.${format === "Fallback JPG" ? "jpg" : "png"}`;
@@ -650,9 +879,22 @@ export function MotionMintApp() {
     setStatus("Preparing template package…");
     const { default: JSZip } = await import("jszip");
     const zip = new JSZip();
-    zip.file("template.json", JSON.stringify({ ...project, id: undefined, updatedAt: undefined }, null, 2));
-    zip.file("README.txt", "MotionMint reusable template package. Import template.json into a compatible MotionMint installation. Customer media is intentionally excluded from reusable templates.\n");
-    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+    zip.file(
+      "template.json",
+      JSON.stringify(
+        { ...project, id: undefined, updatedAt: undefined },
+        null,
+        2,
+      ),
+    );
+    zip.file(
+      "README.txt",
+      "MotionMint reusable template package. Import template.json into a compatible MotionMint installation. Customer media is intentionally excluded from reusable templates.\n",
+    );
+    const blob = await zip.generateAsync({
+      type: "blob",
+      compression: "DEFLATE",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -668,28 +910,59 @@ export function MotionMintApp() {
     }
     const format = project.output?.exportFormat || "MP4";
     if (webExportFormats.includes(format)) {
-      try { await downloadWebExport(); } catch { setStatus("Could not prepare the local web export"); }
+      try {
+        await downloadWebExport();
+      } catch {
+        setStatus("Could not prepare the local web export");
+      }
       return;
     }
     if (staticExportFormats.includes(format)) {
-      try { await downloadStaticExport(); } catch { setStatus(`Could not prepare the ${format} download`); }
+      try {
+        await downloadStaticExport();
+      } catch {
+        setStatus(`Could not prepare the ${format} download`);
+      }
       return;
     }
     if (format === "Template package") {
-      try { await downloadTemplatePackage(); } catch { setStatus("Could not prepare the template package"); }
+      try {
+        await downloadTemplatePackage();
+      } catch {
+        setStatus("Could not prepare the template package");
+      }
       return;
     }
     setStatus("Queueing export…");
     try {
-      await fetch("/api/projects", { method: "PUT", headers: { "content-type": "application/json", "x-motionmint-owner": getOwnerKey() }, body: JSON.stringify(project) });
+      await fetch("/api/projects", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          "x-motionmint-owner": getOwnerKey(),
+        },
+        body: JSON.stringify(project),
+      });
       const response = await fetch("/api/render-jobs", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-motionmint-owner": getOwnerKey() },
-        body: JSON.stringify({ projectId: project.id, ratio: project.ratio, fps: 30, profileId: project.output?.profileId, sizeId: project.output?.sizeId, format: project.output?.exportFormat || "MP4" }),
+        headers: {
+          "content-type": "application/json",
+          "x-motionmint-owner": getOwnerKey(),
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          ratio: project.ratio,
+          fps: 30,
+          profileId: project.output?.profileId,
+          sizeId: project.output?.sizeId,
+          format: project.output?.exportFormat || "MP4",
+        }),
       });
       if (!response.ok) throw new Error("queue unavailable");
       const result = (await response.json()) as { job: { id: string } };
-      setStatus(`Render request queued · worker not connected · ${result.job.id.slice(0, 8)}`);
+      setStatus(
+        `Render request queued · worker not connected · ${result.job.id.slice(0, 8)}`,
+      );
     } catch {
       setStatus("Saved locally · render queue unavailable");
     }
@@ -703,8 +976,14 @@ export function MotionMintApp() {
             Motion<span>Mint</span>
           </Link>
           <div className="header-actions">
-            <span className="local-pill">{authSession ? "Account · cloud ready" : "Private · on device"}</span>
-            <Link className="avatar" href={authSession ? "/account" : "/login"} aria-label={authSession ? "Open account" : "Sign in"}>
+            <span className="local-pill">
+              {authSession ? "Account · cloud ready" : "Private · on device"}
+            </span>
+            <Link
+              className="avatar"
+              href={authSession ? "/account" : "/login"}
+              aria-label={authSession ? "Open account" : "Sign in"}
+            >
               {authSession?.user.name?.slice(0, 2).toUpperCase() || "IN"}
             </Link>
           </div>
@@ -722,28 +1001,48 @@ export function MotionMintApp() {
           </p>
         </section>
         <section className="discovery-filters">
-          <div className="filter-heading"><span>Create for</span><small>Choose where your design will be used</small></div>
-          <nav className="category-row use-case-row" aria-label="Use case categories">
+          <div className="filter-heading">
+            <span>Create for</span>
+            <small>Choose where your design will be used</small>
+          </div>
+          <nav
+            className="category-row use-case-row"
+            aria-label="Use case categories"
+          >
             {useCaseCategories.map((useCase) => (
-              <button className={useCaseFilter === useCase ? "active" : ""} onClick={() => setUseCaseFilter(useCase)} key={useCase}>{useCase}</button>
+              <button
+                className={useCaseFilter === useCase ? "active" : ""}
+                onClick={() => setUseCaseFilter(useCase)}
+                key={useCase}
+              >
+                {useCase}
+              </button>
             ))}
           </nav>
-          <div className="filter-heading content-heading"><span>Content</span><small>Choose what your message is about</small></div>
-        <nav className="category-row" aria-label="Content categories">
-          {categories.map((c) => (
-            <button
-              className={filter === c ? "active" : ""}
-              onClick={() => setFilter(c)}
-              key={c}
-            >
-              {c}
-            </button>
-          ))}
-        </nav>
+          <div className="filter-heading content-heading">
+            <span>Content</span>
+            <small>Choose what your message is about</small>
+          </div>
+          <nav className="category-row" aria-label="Content categories">
+            {categories.map((c) => (
+              <button
+                className={filter === c ? "active" : ""}
+                onClick={() => setFilter(c)}
+                key={c}
+              >
+                {c}
+              </button>
+            ))}
+          </nav>
         </section>
         <section className="template-grid" aria-label="Templates">
           {templates
-            .filter((t) => (filter === "All" || t.category === filter) && (useCaseFilter === "All uses" || usesForTemplate(t).includes(useCaseFilter)))
+            .filter(
+              (t) =>
+                (filter === "All" || t.category === filter) &&
+                (useCaseFilter === "All uses" ||
+                  usesForTemplate(t).includes(useCaseFilter)),
+            )
             .map((t, i) => (
               <button
                 className={`template-card motif-${t.motif}`}
@@ -832,10 +1131,18 @@ export function MotionMintApp() {
               {previewIsPlaying ? "Ⅱ" : "▶"}
             </button>
             <span>
-              {freezeWhileEditing && editorHasFocus ? "Editing · preview frozen" : `Scene ${sceneIndex + 1} / ${project.scenes.length}`}
+              {freezeWhileEditing && editorHasFocus
+                ? "Editing · preview frozen"
+                : `Scene ${sceneIndex + 1} / ${project.scenes.length}`}
             </span>
             <label className="freeze-editing-toggle">
-              <input type="checkbox" checked={freezeWhileEditing} onChange={(event) => setFreezeWhileEditing(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={freezeWhileEditing}
+                onChange={(event) =>
+                  setFreezeWhileEditing(event.target.checked)
+                }
+              />
               Freeze while editing
             </label>
           </div>
@@ -844,26 +1151,182 @@ export function MotionMintApp() {
           className="controls-panel"
           onFocusCapture={() => setEditorHasFocus(true)}
           onBlurCapture={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEditorHasFocus(false);
+            if (
+              !event.currentTarget.contains(event.relatedTarget as Node | null)
+            )
+              setEditorHasFocus(false);
           }}
         >
           <section className="output-profile-card">
-            <div className="output-profile-title"><div><p className="eyebrow">Production mode</p><h2>{activeProfile.name}</h2><p>{activeProfile.description}</p></div><span>{activeSize.width} × {activeSize.height}</span></div>
-            <div className="output-profile-grid">
-              <label>Output profile<select aria-label="Output profile" value={activeProfile.id} onChange={(e) => { const profile = profileById(e.target.value); const size = profile.sizes[0]; update({ ratio: ratioForSize(size.width, size.height), output: { profileId: profile.id, sizeId: size.id, exportFormat: profile.exports[0], transparent: false } }); }}>
-                {availableProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
-              </select></label>
-              <label>Canvas size<select aria-label="Canvas size" value={activeSize.id} onChange={(e) => { const size = activeProfile.sizes.find((item) => item.id === e.target.value) || activeProfile.sizes[0]; update({ ratio: ratioForSize(size.width, size.height), output: { ...(project.output || { profileId: activeProfile.id, exportFormat: activeProfile.exports[0] }), sizeId: size.id } }); }}>
-                {activeProfile.sizes.map((size) => <option key={size.id} value={size.id}>{size.label} · {size.width}×{size.height}</option>)}
-              </select></label>
-              <label>Export format<select aria-label="Export format" value={project.output?.exportFormat || activeProfile.exports[0]} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id }), exportFormat: e.target.value } })}>
-                {activeProfile.exports.map((format) => <option key={format}>{format}</option>)}
-              </select><small className="export-behaviour">{immediateExportFormats.includes(project.output?.exportFormat || activeProfile.exports[0]) ? "Downloads immediately to this device" : "Creates a render request · video/GIF worker not connected yet"}</small></label>
-              {activeProfile.transparency && <label className="output-check"><input type="checkbox" checked={project.output?.transparent || false} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id, exportFormat: activeProfile.exports[0] }), transparent: e.target.checked } })} /> Transparent background</label>}
+            <div className="output-profile-title">
+              <div>
+                <p className="eyebrow">Production mode</p>
+                <h2>{activeProfile.name}</h2>
+                <p>{activeProfile.description}</p>
+              </div>
+              <span>
+                {activeSize.width} × {activeSize.height}
+              </span>
             </div>
-            {activeProfile.clickThrough && <label className="output-url">Destination / click-through URL<input type="url" placeholder="https://example.com" value={project.output?.clickThroughUrl || ""} onChange={(e) => update({ output: { ...(project.output || { profileId: activeProfile.id, sizeId: activeSize.id, exportFormat: activeProfile.exports[0] }), clickThroughUrl: e.target.value } })} /></label>}
-            <div className="profile-capabilities"><span className={activeProfile.audio ? "allowed" : "restricted"}>{activeProfile.audio ? "Audio allowed" : "No audio"}</span><span className={activeProfile.looping ? "allowed" : "restricted"}>{activeProfile.looping ? "Looping allowed" : "Single play"}</span><span>{activeProfile.safeInset}% safe margin</span><span className={totalDuration > activeProfile.maxDuration ? "warning" : "allowed"}>{totalDuration}s / {activeProfile.maxDuration}s max</span></div>
-            <details className="profile-requirements"><summary>Profile requirements</summary><ul>{activeProfile.requirements.map((requirement) => <li key={requirement}>{requirement}</li>)}</ul></details>
+            <div className="output-profile-grid">
+              <label>
+                Output profile
+                <select
+                  aria-label="Output profile"
+                  value={activeProfile.id}
+                  onChange={(e) => {
+                    const profile = profileById(e.target.value);
+                    const size = profile.sizes[0];
+                    update({
+                      ratio: ratioForSize(size.width, size.height),
+                      output: {
+                        profileId: profile.id,
+                        sizeId: size.id,
+                        exportFormat: profile.exports[0],
+                        transparent: false,
+                      },
+                    });
+                  }}
+                >
+                  {availableProfiles.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Canvas size
+                <select
+                  aria-label="Canvas size"
+                  value={activeSize.id}
+                  onChange={(e) => {
+                    const size =
+                      activeProfile.sizes.find(
+                        (item) => item.id === e.target.value,
+                      ) || activeProfile.sizes[0];
+                    update({
+                      ratio: ratioForSize(size.width, size.height),
+                      output: {
+                        ...(project.output || {
+                          profileId: activeProfile.id,
+                          exportFormat: activeProfile.exports[0],
+                        }),
+                        sizeId: size.id,
+                      },
+                    });
+                  }}
+                >
+                  {activeProfile.sizes.map((size) => (
+                    <option key={size.id} value={size.id}>
+                      {size.label} · {size.width}×{size.height}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Export format
+                <select
+                  aria-label="Export format"
+                  value={
+                    project.output?.exportFormat || activeProfile.exports[0]
+                  }
+                  onChange={(e) =>
+                    update({
+                      output: {
+                        ...(project.output || {
+                          profileId: activeProfile.id,
+                          sizeId: activeSize.id,
+                        }),
+                        exportFormat: e.target.value,
+                      },
+                    })
+                  }
+                >
+                  {activeProfile.exports.map((format) => (
+                    <option key={format}>{format}</option>
+                  ))}
+                </select>
+                <small className="export-behaviour">
+                  {immediateExportFormats.includes(
+                    project.output?.exportFormat || activeProfile.exports[0],
+                  )
+                    ? "Downloads immediately to this device"
+                    : "Creates a render request · video/GIF worker not connected yet"}
+                </small>
+              </label>
+              {activeProfile.transparency && (
+                <label className="output-check">
+                  <input
+                    type="checkbox"
+                    checked={project.output?.transparent || false}
+                    onChange={(e) =>
+                      update({
+                        output: {
+                          ...(project.output || {
+                            profileId: activeProfile.id,
+                            sizeId: activeSize.id,
+                            exportFormat: activeProfile.exports[0],
+                          }),
+                          transparent: e.target.checked,
+                        },
+                      })
+                    }
+                  />{" "}
+                  Transparent background
+                </label>
+              )}
+            </div>
+            {activeProfile.clickThrough && (
+              <label className="output-url">
+                Destination / click-through URL
+                <input
+                  type="url"
+                  placeholder="https://example.com"
+                  value={project.output?.clickThroughUrl || ""}
+                  onChange={(e) =>
+                    update({
+                      output: {
+                        ...(project.output || {
+                          profileId: activeProfile.id,
+                          sizeId: activeSize.id,
+                          exportFormat: activeProfile.exports[0],
+                        }),
+                        clickThroughUrl: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+            )}
+            <div className="profile-capabilities">
+              <span className={activeProfile.audio ? "allowed" : "restricted"}>
+                {activeProfile.audio ? "Audio allowed" : "No audio"}
+              </span>
+              <span
+                className={activeProfile.looping ? "allowed" : "restricted"}
+              >
+                {activeProfile.looping ? "Looping allowed" : "Single play"}
+              </span>
+              <span>{activeProfile.safeInset}% safe margin</span>
+              <span
+                className={
+                  totalDuration > activeProfile.maxDuration
+                    ? "warning"
+                    : "allowed"
+                }
+              >
+                {totalDuration}s / {activeProfile.maxDuration}s max
+              </span>
+            </div>
+            <details className="profile-requirements">
+              <summary>Profile requirements</summary>
+              <ul>
+                {activeProfile.requirements.map((requirement) => (
+                  <li key={requirement}>{requirement}</li>
+                ))}
+              </ul>
+            </details>
           </section>
           <div className="section-heading">
             <div>
@@ -959,10 +1422,7 @@ export function MotionMintApp() {
             </label>
             <label>
               Preview ratio
-              <select
-                value={project.ratio}
-                disabled
-              >
+              <select value={project.ratio} disabled>
                 {(["9:16", "1:1", "16:9"] as Ratio[]).map((r) => (
                   <option key={r}>{r}</option>
                 ))}
@@ -975,7 +1435,10 @@ export function MotionMintApp() {
               <input
                 type="file"
                 accept="image/*,video/*"
-                onChange={(e) => { upload(e.target.files?.[0], "underlay"); e.currentTarget.value = ""; }}
+                onChange={(e) => {
+                  upload(e.target.files?.[0], "underlay");
+                  e.currentTarget.value = "";
+                }}
               />
               <span>{project.media.underlayName || "Choose underlay"}</span>
             </label>
@@ -984,7 +1447,10 @@ export function MotionMintApp() {
               <input
                 type="file"
                 accept="image/*,video/*"
-                onChange={(e) => { upload(e.target.files?.[0], "feature"); e.currentTarget.value = ""; }}
+                onChange={(e) => {
+                  upload(e.target.files?.[0], "feature");
+                  e.currentTarget.value = "";
+                }}
               />
               <span>{project.media.featureName || "Choose feature media"}</span>
             </label>
@@ -996,61 +1462,587 @@ export function MotionMintApp() {
                 disabled={!activeProfile.audio}
                 onChange={(e) => upload(e.target.files?.[0], "soundtrack")}
               />
-              <span>{!activeProfile.audio ? "Unavailable for this profile" : project.media.soundtrackName || "Choose audio"}</span>
+              <span>
+                {!activeProfile.audio
+                  ? "Unavailable for this profile"
+                  : project.media.soundtrackName || "Choose audio"}
+              </span>
             </label>
           </div>
           <details open className="media-treatment">
             <summary>Media treatment &amp; slow motion</summary>
-            <p>Colour controls work with images and video. Speed controls apply to video.</p>
+            <p>
+              Colour controls work with images and video. Speed controls apply
+              to video.
+            </p>
             <div className="media-treatment-grid">
-              <label>Background black &amp; white<div className="range-line"><input type="range" min="0" max="100" value={project.media.underlayGrayscale || 0} onChange={(e) => update({ media: { ...project.media, underlayGrayscale: +e.target.value } })} /><output>{project.media.underlayGrayscale || 0}%</output></div></label>
-              <label>Masked media black &amp; white<div className="range-line"><input type="range" min="0" max="100" value={project.media.featureGrayscale || 0} onChange={(e) => update({ media: { ...project.media, featureGrayscale: +e.target.value } })} /><output>{project.media.featureGrayscale || 0}%</output></div></label>
-              <label>Background video speed<div className="range-line"><input type="range" min="0.25" max="1" step="0.05" value={project.media.underlayPlaybackRate ?? 1} onChange={(e) => update({ media: { ...project.media, underlayPlaybackRate: +e.target.value } })} /><output>{(project.media.underlayPlaybackRate ?? 1).toFixed(2).replace(/0$/, "")}×</output></div></label>
-              <label>Masked video speed<div className="range-line"><input type="range" min="0.25" max="1" step="0.05" value={project.media.featurePlaybackRate ?? 1} onChange={(e) => update({ media: { ...project.media, featurePlaybackRate: +e.target.value } })} /><output>{(project.media.featurePlaybackRate ?? 1).toFixed(2).replace(/0$/, "")}×</output></div></label>
+              <label>
+                Background black &amp; white
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={project.media.underlayGrayscale || 0}
+                    onChange={(e) =>
+                      update({
+                        media: {
+                          ...project.media,
+                          underlayGrayscale: +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <output>{project.media.underlayGrayscale || 0}%</output>
+                </div>
+              </label>
+              <label>
+                Masked media black &amp; white
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={project.media.featureGrayscale || 0}
+                    onChange={(e) =>
+                      update({
+                        media: {
+                          ...project.media,
+                          featureGrayscale: +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <output>{project.media.featureGrayscale || 0}%</output>
+                </div>
+              </label>
+              <label>
+                Background video speed
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="0.25"
+                    max="1"
+                    step="0.05"
+                    value={project.media.underlayPlaybackRate ?? 1}
+                    onChange={(e) =>
+                      update({
+                        media: {
+                          ...project.media,
+                          underlayPlaybackRate: +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <output>
+                    {(project.media.underlayPlaybackRate ?? 1)
+                      .toFixed(2)
+                      .replace(/0$/, "")}
+                    ×
+                  </output>
+                </div>
+              </label>
+              <label>
+                Masked video speed
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="0.25"
+                    max="1"
+                    step="0.05"
+                    value={project.media.featurePlaybackRate ?? 1}
+                    onChange={(e) =>
+                      update({
+                        media: {
+                          ...project.media,
+                          featurePlaybackRate: +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <output>
+                    {(project.media.featurePlaybackRate ?? 1)
+                      .toFixed(2)
+                      .replace(/0$/, "")}
+                    ×
+                  </output>
+                </div>
+              </label>
             </div>
           </details>
           <details open className="lottie-controls">
             <summary>Lottie animation layer</summary>
-            <p>Add a reusable vector animation above the motion system. Files stay in this project on your device.</p>
+            <p>
+              Add a reusable vector animation above the motion system. Files
+              stay in this project on your device.
+            </p>
             <div className="brand-upload-row">
               <label className="upload lottie-upload">
                 Lottie file
-                <input type="file" accept=".json,.lottie,application/json,application/zip+dotlottie" onChange={(e) => { uploadLottie(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                <input
+                  type="file"
+                  accept=".json,.lottie,application/json,application/zip+dotlottie"
+                  onChange={(e) => {
+                    uploadLottie(e.target.files?.[0]);
+                    e.currentTarget.value = "";
+                  }}
+                />
                 <span>{project.lottie?.name || "Choose .json or .lottie"}</span>
               </label>
-              {project.lottie?.dataUrl && <button type="button" className="remove-logo" onClick={() => update({ lottie: { ...(project.lottie || { width: 28, x: 76, y: 72, rotation: 0, opacity: 1, speed: 1, loop: true, visibility: "all" }), name: undefined, dataUrl: undefined } })}>Remove animation</button>}
+              {project.lottie?.dataUrl && (
+                <button
+                  type="button"
+                  className="remove-logo"
+                  onClick={() =>
+                    update({
+                      lottie: {
+                        ...(project.lottie || {
+                          width: 28,
+                          x: 76,
+                          y: 72,
+                          rotation: 0,
+                          opacity: 1,
+                          speed: 1,
+                          loop: true,
+                          visibility: "all",
+                        }),
+                        name: undefined,
+                        dataUrl: undefined,
+                      },
+                    })
+                  }
+                >
+                  Remove animation
+                </button>
+              )}
             </div>
-            {project.lottie?.dataUrl && <div className="style-grid lottie-grid">
-              <label>Show animation<select value={project.lottie.visibility} onChange={(e) => update({ lottie: { ...project.lottie!, visibility: e.target.value as LottieVisibility, sceneId: e.target.value === "current" ? scene.id : project.lottie?.sceneId } })}><option value="all">Throughout</option><option value="first">First scene only</option><option value="last">Last scene only</option><option value="current">This scene only</option></select></label>
-              <label>Loop<select value={project.lottie.loop ? "yes" : "no"} onChange={(e) => update({ lottie: { ...project.lottie!, loop: e.target.value === "yes" } })}><option value="yes">Loop continuously</option><option value="no">Play once</option></select></label>
-              <label>Width<div className="range-line"><input type="range" min="8" max="80" value={project.lottie.width} onChange={(e) => update({ lottie: { ...project.lottie!, width: +e.target.value } })} /><output>{project.lottie.width}%</output></div></label>
-              <label>Opacity<div className="range-line"><input type="range" min="0.1" max="1" step="0.05" value={project.lottie.opacity} onChange={(e) => update({ lottie: { ...project.lottie!, opacity: +e.target.value } })} /><output>{Math.round(project.lottie.opacity * 100)}%</output></div></label>
-              <label>Horizontal position<div className="range-line"><input type="range" min="0" max="100" value={project.lottie.x} onChange={(e) => update({ lottie: { ...project.lottie!, x: +e.target.value } })} /><output>{project.lottie.x}%</output></div></label>
-              <label>Vertical position<div className="range-line"><input type="range" min="0" max="100" value={project.lottie.y} onChange={(e) => update({ lottie: { ...project.lottie!, y: +e.target.value } })} /><output>{project.lottie.y}%</output></div></label>
-              <label>Playback speed<div className="range-line"><input type="range" min="0.25" max="3" step="0.25" value={project.lottie.speed} onChange={(e) => update({ lottie: { ...project.lottie!, speed: +e.target.value } })} /><output>{project.lottie.speed}×</output></div></label>
-              <label>Rotation<div className="range-line"><input type="range" min="-180" max="180" step="5" value={project.lottie.rotation} onChange={(e) => update({ lottie: { ...project.lottie!, rotation: +e.target.value } })} /><output>{project.lottie.rotation}°</output></div></label>
-            </div>}
+            {project.lottie?.dataUrl && (
+              <div className="style-grid lottie-grid">
+                <label>
+                  Show animation
+                  <select
+                    value={project.lottie.visibility}
+                    onChange={(e) =>
+                      update({
+                        lottie: {
+                          ...project.lottie!,
+                          visibility: e.target.value as LottieVisibility,
+                          sceneId:
+                            e.target.value === "current"
+                              ? scene.id
+                              : project.lottie?.sceneId,
+                        },
+                      })
+                    }
+                  >
+                    <option value="all">Throughout</option>
+                    <option value="first">First scene only</option>
+                    <option value="last">Last scene only</option>
+                    <option value="current">This scene only</option>
+                  </select>
+                </label>
+                <label>
+                  Loop
+                  <select
+                    value={project.lottie.loop ? "yes" : "no"}
+                    onChange={(e) =>
+                      update({
+                        lottie: {
+                          ...project.lottie!,
+                          loop: e.target.value === "yes",
+                        },
+                      })
+                    }
+                  >
+                    <option value="yes">Loop continuously</option>
+                    <option value="no">Play once</option>
+                  </select>
+                </label>
+                <label>
+                  Width
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="8"
+                      max="80"
+                      value={project.lottie.width}
+                      onChange={(e) =>
+                        update({
+                          lottie: {
+                            ...project.lottie!,
+                            width: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>{project.lottie.width}%</output>
+                  </div>
+                </label>
+                <label>
+                  Opacity
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      value={project.lottie.opacity}
+                      onChange={(e) =>
+                        update({
+                          lottie: {
+                            ...project.lottie!,
+                            opacity: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>{Math.round(project.lottie.opacity * 100)}%</output>
+                  </div>
+                </label>
+                <label>
+                  Horizontal position
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={project.lottie.x}
+                      onChange={(e) =>
+                        update({
+                          lottie: { ...project.lottie!, x: +e.target.value },
+                        })
+                      }
+                    />
+                    <output>{project.lottie.x}%</output>
+                  </div>
+                </label>
+                <label>
+                  Vertical position
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={project.lottie.y}
+                      onChange={(e) =>
+                        update({
+                          lottie: { ...project.lottie!, y: +e.target.value },
+                        })
+                      }
+                    />
+                    <output>{project.lottie.y}%</output>
+                  </div>
+                </label>
+                <label>
+                  Playback speed
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="0.25"
+                      max="3"
+                      step="0.25"
+                      value={project.lottie.speed}
+                      onChange={(e) =>
+                        update({
+                          lottie: {
+                            ...project.lottie!,
+                            speed: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>{project.lottie.speed}×</output>
+                  </div>
+                </label>
+                <label>
+                  Rotation
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="-180"
+                      max="180"
+                      step="5"
+                      value={project.lottie.rotation}
+                      onChange={(e) =>
+                        update({
+                          lottie: {
+                            ...project.lottie!,
+                            rotation: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>{project.lottie.rotation}°</output>
+                  </div>
+                </label>
+              </div>
+            )}
           </details>
           <details open className="brand-controls">
             <summary>Logo &amp; brand layer</summary>
             <div className="brand-upload-row">
               <label className="upload logo-upload">
                 Logo file
-                <input type="file" accept="image/png,image/webp,image/jpeg,image/svg+xml" onChange={(e) => upload(e.target.files?.[0], "logo")} />
-                <span>{project.media.logoName || "Choose PNG, SVG, WebP or JPG"}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/webp,image/jpeg,image/svg+xml"
+                  onChange={(e) => upload(e.target.files?.[0], "logo")}
+                />
+                <span>
+                  {project.media.logoName || "Choose PNG, SVG, WebP or JPG"}
+                </span>
               </label>
-              {logoUrl && <button type="button" className="remove-logo" onClick={() => { URL.revokeObjectURL(logoUrl); setLogoUrl(undefined); update({ media: { ...project.media, logoName: undefined } }); }}>Remove logo</button>}
+              {logoUrl && (
+                <button
+                  type="button"
+                  className="remove-logo"
+                  onClick={() => {
+                    URL.revokeObjectURL(logoUrl);
+                    setLogoUrl(undefined);
+                    update({
+                      media: { ...project.media, logoName: undefined },
+                    });
+                  }}
+                >
+                  Remove logo
+                </button>
+              )}
             </div>
             <div className="style-grid brand-grid">
-              <label>Position<select value={project.brand?.position || "top-right"} onChange={(e) => update({ brand: { ...(project.brand || { width: 18, opacity: 1, padding: 8, customX: 80, customY: 12, visibility: "all", animation: "fade" }), position: e.target.value as LogoPosition } })}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="custom">Custom position</option></select></label>
-              <label>Show logo<select value={project.brand?.visibility || "all"} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", width: 18, opacity: 1, padding: 8, customX: 80, customY: 12, animation: "fade" }), visibility: e.target.value as LogoVisibility } })}><option value="all">Throughout</option><option value="first">First scene only</option><option value="last">Last scene only</option></select></label>
-              <label>Entrance<select value={project.brand?.animation || "fade"} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", width: 18, opacity: 1, padding: 8, customX: 80, customY: 12, visibility: "all" }), animation: e.target.value as LogoAnimation } })}><option value="none">None</option><option value="fade">Gentle fade</option><option value="slide">Slide in</option><option value="scale">Scale up</option></select></label>
-              <label>Logo width<div className="range-line"><input type="range" min="6" max="40" value={project.brand?.width || 18} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", opacity: 1, padding: 8, customX: 80, customY: 12, visibility: "all", animation: "fade" }), width: +e.target.value } })} /><output>{project.brand?.width || 18}%</output></div></label>
-              <label>Opacity<div className="range-line"><input type="range" min="0.2" max="1" step="0.05" value={project.brand?.opacity ?? 1} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", width: 18, padding: 8, customX: 80, customY: 12, visibility: "all", animation: "fade" }), opacity: +e.target.value } })} /><output>{Math.round((project.brand?.opacity ?? 1) * 100)}%</output></div></label>
-              <label>Safe padding<div className="range-line"><input type="range" min="2" max="18" value={project.brand?.padding || 8} onChange={(e) => update({ brand: { ...(project.brand || { position: "top-right", width: 18, opacity: 1, customX: 80, customY: 12, visibility: "all", animation: "fade" }), padding: +e.target.value } })} /><output>{project.brand?.padding || 8}%</output></div></label>
-              {(project.brand?.position || "top-right") === "custom" && <><label>Horizontal position<div className="range-line"><input type="range" min="0" max="100" value={project.brand?.customX ?? 80} onChange={(e) => update({ brand: { ...(project.brand || { position: "custom", width: 18, opacity: 1, padding: 8, customY: 12, visibility: "all", animation: "fade" }), customX: +e.target.value } })} /><output>{project.brand?.customX ?? 80}%</output></div></label><label>Vertical position<div className="range-line"><input type="range" min="0" max="100" value={project.brand?.customY ?? 12} onChange={(e) => update({ brand: { ...(project.brand || { position: "custom", width: 18, opacity: 1, padding: 8, customX: 80, visibility: "all", animation: "fade" }), customY: +e.target.value } })} /><output>{project.brand?.customY ?? 12}%</output></div></label></>}
+              <label>
+                Position
+                <select
+                  value={project.brand?.position || "top-right"}
+                  onChange={(e) =>
+                    update({
+                      brand: {
+                        ...(project.brand || {
+                          width: 18,
+                          opacity: 1,
+                          padding: 8,
+                          customX: 80,
+                          customY: 12,
+                          visibility: "all",
+                          animation: "fade",
+                        }),
+                        position: e.target.value as LogoPosition,
+                      },
+                    })
+                  }
+                >
+                  <option value="top-left">Top left</option>
+                  <option value="top-right">Top right</option>
+                  <option value="bottom-left">Bottom left</option>
+                  <option value="bottom-right">Bottom right</option>
+                  <option value="custom">Custom position</option>
+                </select>
+              </label>
+              <label>
+                Show logo
+                <select
+                  value={project.brand?.visibility || "all"}
+                  onChange={(e) =>
+                    update({
+                      brand: {
+                        ...(project.brand || {
+                          position: "top-right",
+                          width: 18,
+                          opacity: 1,
+                          padding: 8,
+                          customX: 80,
+                          customY: 12,
+                          animation: "fade",
+                        }),
+                        visibility: e.target.value as LogoVisibility,
+                      },
+                    })
+                  }
+                >
+                  <option value="all">Throughout</option>
+                  <option value="first">First scene only</option>
+                  <option value="last">Last scene only</option>
+                </select>
+              </label>
+              <label>
+                Entrance
+                <select
+                  value={project.brand?.animation || "fade"}
+                  onChange={(e) =>
+                    update({
+                      brand: {
+                        ...(project.brand || {
+                          position: "top-right",
+                          width: 18,
+                          opacity: 1,
+                          padding: 8,
+                          customX: 80,
+                          customY: 12,
+                          visibility: "all",
+                        }),
+                        animation: e.target.value as LogoAnimation,
+                      },
+                    })
+                  }
+                >
+                  <option value="none">None</option>
+                  <option value="fade">Gentle fade</option>
+                  <option value="slide">Slide in</option>
+                  <option value="scale">Scale up</option>
+                </select>
+              </label>
+              <label>
+                Logo width
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="6"
+                    max="40"
+                    value={project.brand?.width || 18}
+                    onChange={(e) =>
+                      update({
+                        brand: {
+                          ...(project.brand || {
+                            position: "top-right",
+                            opacity: 1,
+                            padding: 8,
+                            customX: 80,
+                            customY: 12,
+                            visibility: "all",
+                            animation: "fade",
+                          }),
+                          width: +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <output>{project.brand?.width || 18}%</output>
+                </div>
+              </label>
+              <label>
+                Opacity
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="0.2"
+                    max="1"
+                    step="0.05"
+                    value={project.brand?.opacity ?? 1}
+                    onChange={(e) =>
+                      update({
+                        brand: {
+                          ...(project.brand || {
+                            position: "top-right",
+                            width: 18,
+                            padding: 8,
+                            customX: 80,
+                            customY: 12,
+                            visibility: "all",
+                            animation: "fade",
+                          }),
+                          opacity: +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <output>
+                    {Math.round((project.brand?.opacity ?? 1) * 100)}%
+                  </output>
+                </div>
+              </label>
+              <label>
+                Safe padding
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="2"
+                    max="18"
+                    value={project.brand?.padding || 8}
+                    onChange={(e) =>
+                      update({
+                        brand: {
+                          ...(project.brand || {
+                            position: "top-right",
+                            width: 18,
+                            opacity: 1,
+                            customX: 80,
+                            customY: 12,
+                            visibility: "all",
+                            animation: "fade",
+                          }),
+                          padding: +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <output>{project.brand?.padding || 8}%</output>
+                </div>
+              </label>
+              {(project.brand?.position || "top-right") === "custom" && (
+                <>
+                  <label>
+                    Horizontal position
+                    <div className="range-line">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={project.brand?.customX ?? 80}
+                        onChange={(e) =>
+                          update({
+                            brand: {
+                              ...(project.brand || {
+                                position: "custom",
+                                width: 18,
+                                opacity: 1,
+                                padding: 8,
+                                customY: 12,
+                                visibility: "all",
+                                animation: "fade",
+                              }),
+                              customX: +e.target.value,
+                            },
+                          })
+                        }
+                      />
+                      <output>{project.brand?.customX ?? 80}%</output>
+                    </div>
+                  </label>
+                  <label>
+                    Vertical position
+                    <div className="range-line">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={project.brand?.customY ?? 12}
+                        onChange={(e) =>
+                          update({
+                            brand: {
+                              ...(project.brand || {
+                                position: "custom",
+                                width: 18,
+                                opacity: 1,
+                                padding: 8,
+                                customX: 80,
+                                visibility: "all",
+                                animation: "fade",
+                              }),
+                              customY: +e.target.value,
+                            },
+                          })
+                        }
+                      />
+                      <output>{project.brand?.customY ?? 12}%</output>
+                    </div>
+                  </label>
+                </>
+              )}
             </div>
-            {template.brandDefaults?.required && <p className="brand-required">This template requires a logo before export.</p>}
+            {template.brandDefaults?.required && (
+              <p className="brand-required">
+                This template requires a logo before export.
+              </p>
+            )}
           </details>
           <details open className="mask-controls">
             <summary>Media mask animation</summary>
@@ -1087,7 +2079,21 @@ export function MotionMintApp() {
                 <select
                   value={project.media.mask?.preset || "clock"}
                   onChange={(e) =>
-                    update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, duration: 8, opacity: 1, scale: 1, showGuide: true }), preset: e.target.value as MaskPreset } } })
+                    update({
+                      media: {
+                        ...project.media,
+                        mask: {
+                          ...(project.media.mask || {
+                            enabled: true,
+                            duration: 8,
+                            opacity: 1,
+                            scale: 1,
+                            showGuide: true,
+                          }),
+                          preset: e.target.value as MaskPreset,
+                        },
+                      },
+                    })
                   }
                 >
                   <option value="clock">Clock sweep</option>
@@ -1098,26 +2104,163 @@ export function MotionMintApp() {
               </label>
               <label>
                 Reveal duration
-                <div className="range-line"><input type="range" min="2" max="15" step="0.5" value={project.media.mask?.duration || 8} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", opacity: 1, scale: 1, showGuide: true }), duration: +e.target.value } } })} /><output>{project.media.mask?.duration || 8}s</output></div>
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="2"
+                    max="15"
+                    step="0.5"
+                    value={project.media.mask?.duration || 8}
+                    onChange={(e) =>
+                      update({
+                        media: {
+                          ...project.media,
+                          mask: {
+                            ...(project.media.mask || {
+                              enabled: true,
+                              preset: "clock",
+                              opacity: 1,
+                              scale: 1,
+                              showGuide: true,
+                            }),
+                            duration: +e.target.value,
+                          },
+                        },
+                      })
+                    }
+                  />
+                  <output>{project.media.mask?.duration || 8}s</output>
+                </div>
               </label>
               <label>
                 Feature opacity
-                <div className="range-line"><input type="range" min="0.15" max="1" step="0.05" value={project.media.mask?.opacity ?? 1} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", duration: 8, scale: 1, showGuide: true }), opacity: +e.target.value } } })} /><output>{Math.round((project.media.mask?.opacity ?? 1) * 100)}%</output></div>
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="0.15"
+                    max="1"
+                    step="0.05"
+                    value={project.media.mask?.opacity ?? 1}
+                    onChange={(e) =>
+                      update({
+                        media: {
+                          ...project.media,
+                          mask: {
+                            ...(project.media.mask || {
+                              enabled: true,
+                              preset: "clock",
+                              duration: 8,
+                              scale: 1,
+                              showGuide: true,
+                            }),
+                            opacity: +e.target.value,
+                          },
+                        },
+                      })
+                    }
+                  />
+                  <output>
+                    {Math.round((project.media.mask?.opacity ?? 1) * 100)}%
+                  </output>
+                </div>
               </label>
               <label>
                 Feature scale
-                <div className="range-line"><input type="range" min="0.7" max="1.5" step="0.05" value={project.media.mask?.scale ?? 1} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", duration: 8, opacity: 1, showGuide: true }), scale: +e.target.value } } })} /><output>{Math.round((project.media.mask?.scale ?? 1) * 100)}%</output></div>
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="0.7"
+                    max="1.5"
+                    step="0.05"
+                    value={project.media.mask?.scale ?? 1}
+                    onChange={(e) =>
+                      update({
+                        media: {
+                          ...project.media,
+                          mask: {
+                            ...(project.media.mask || {
+                              enabled: true,
+                              preset: "clock",
+                              duration: 8,
+                              opacity: 1,
+                              showGuide: true,
+                            }),
+                            scale: +e.target.value,
+                          },
+                        },
+                      })
+                    }
+                  />
+                  <output>
+                    {Math.round((project.media.mask?.scale ?? 1) * 100)}%
+                  </output>
+                </div>
               </label>
             </div>
-            <label className="mask-guide-toggle"><input type="checkbox" checked={project.media.mask?.showGuide ?? true} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", duration: 8, opacity: 1, scale: 1 }), showGuide: e.target.checked } } })} /> Show clock face and rotating hand</label>
+            <label className="mask-guide-toggle">
+              <input
+                type="checkbox"
+                checked={project.media.mask?.showGuide ?? true}
+                onChange={(e) =>
+                  update({
+                    media: {
+                      ...project.media,
+                      mask: {
+                        ...(project.media.mask || {
+                          enabled: true,
+                          preset: "clock",
+                          duration: 8,
+                          opacity: 1,
+                          scale: 1,
+                        }),
+                        showGuide: e.target.checked,
+                      },
+                    },
+                  })
+                }
+              />{" "}
+              Show clock face and rotating hand
+            </label>
             <div className="mask-preview-actions">
-              <label className="mask-guide-toggle"><input type="checkbox" checked={project.media.mask?.loop ?? true} onChange={(e) => update({ media: { ...project.media, mask: { ...(project.media.mask || { enabled: true, preset: "clock", duration: 8, opacity: 1, scale: 1, showGuide: true }), loop: e.target.checked } } })} /> Loop reveal while previewing</label>
-              <button type="button" onClick={() => setMaskReplay((value) => value + 1)} disabled={!featureMedia}>↻ Replay mask</button>
+              <label className="mask-guide-toggle">
+                <input
+                  type="checkbox"
+                  checked={project.media.mask?.loop ?? true}
+                  onChange={(e) =>
+                    update({
+                      media: {
+                        ...project.media,
+                        mask: {
+                          ...(project.media.mask || {
+                            enabled: true,
+                            preset: "clock",
+                            duration: 8,
+                            opacity: 1,
+                            scale: 1,
+                            showGuide: true,
+                          }),
+                          loop: e.target.checked,
+                        },
+                      },
+                    })
+                  }
+                />{" "}
+                Loop reveal while previewing
+              </label>
+              <button
+                type="button"
+                onClick={() => setMaskReplay((value) => value + 1)}
+                disabled={!featureMedia}
+              >
+                ↻ Replay mask
+              </button>
             </div>
           </details>
           {/* Uploaded soundtrack preview is audio-only, so no caption track exists. */}
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          {audioUrl && activeProfile.audio && <audio className="audio" controls src={audioUrl} />}
+          {audioUrl && activeProfile.audio && (
+            <audio className="audio" controls src={audioUrl} />
+          )}
           <details open>
             <summary>Style &amp; atmosphere</summary>
             <div className="style-grid">
@@ -1281,8 +2424,21 @@ export function MotionMintApp() {
             </p>
           </details>
           <button className="render-button" onClick={renderRequest}>
-            <span>{immediateExportFormats.includes(project.output?.exportFormat || "") ? "Download" : "Request"} {project.output?.exportFormat || "MP4"} export</span>
-            <small>{immediateExportFormats.includes(project.output?.exportFormat || "") ? "Creates a private file on this device" : "Queues the job; downloadable video requires the renderer worker"}</small>
+            <span>
+              {immediateExportFormats.includes(
+                project.output?.exportFormat || "",
+              )
+                ? "Download"
+                : "Request"}{" "}
+              {project.output?.exportFormat || "MP4"} export
+            </span>
+            <small>
+              {immediateExportFormats.includes(
+                project.output?.exportFormat || "",
+              )
+                ? "Creates a private file on this device"
+                : "Queues the job; downloadable video requires the renderer worker"}
+            </small>
           </button>
           <p className="privacy">
             Uploads remain private in this browser session. Project text and
@@ -1323,7 +2479,9 @@ function Preview({
     typographyPresets[project.theme.font as keyof typeof typographyPresets] ||
     typographyPresets.Editorial;
   const previewProfile = profileById(project.output?.profileId);
-  const previewSize = previewProfile.sizes.find((size) => size.id === project.output?.sizeId) || previewProfile.sizes[0];
+  const previewSize =
+    previewProfile.sizes.find((size) => size.id === project.output?.sizeId) ||
+    previewProfile.sizes[0];
   useLayoutEffect(() => {
     const root = inner.current;
     const headline = root?.querySelector<HTMLHeadingElement>("h3");
@@ -1332,7 +2490,9 @@ function Preview({
     headline.style.fontSize = "";
     if (secondary) secondary.style.fontSize = "";
     let headlineSize = Number.parseFloat(getComputedStyle(headline).fontSize);
-    let secondarySize = secondary ? Number.parseFloat(getComputedStyle(secondary).fontSize) : 0;
+    let secondarySize = secondary
+      ? Number.parseFloat(getComputedStyle(secondary).fontSize)
+      : 0;
     let attempts = 0;
     while (root.scrollHeight > root.clientHeight + 1 && attempts < 24) {
       headlineSize = Math.max(8, headlineSize * 0.92);
@@ -1393,18 +2553,44 @@ function Preview({
   }, [playing, sceneIndex, scene.duration, project.scenes.length]);
   const isVideo = Boolean(
     underlay &&
-    (project.media.underlayType?.startsWith("video/") || project.media.underlayName?.match(/\.(mp4|webm|mov|m4v|ogv)$/i)),
+    (project.media.underlayType?.startsWith("video/") ||
+      project.media.underlayName?.match(/\.(mp4|webm|mov|m4v|ogv)$/i)),
   );
   const featureIsVideo = Boolean(
     featureMedia &&
-    (project.media.featureType?.startsWith("video/") || project.media.featureName?.match(/\.(mp4|webm|mov|m4v|ogv)$/i)),
+    (project.media.featureType?.startsWith("video/") ||
+      project.media.featureName?.match(/\.(mp4|webm|mov|m4v|ogv)$/i)),
   );
   const canvasAspect = previewSize.width / previewSize.height;
-  const canvasShape = canvasAspect >= 4 ? "ultrawide" : canvasAspect >= 1.45 ? "wide" : canvasAspect <= 0.72 ? "tall" : "compact";
+  const canvasShape =
+    canvasAspect >= 4
+      ? "ultrawide"
+      : canvasAspect >= 1.45
+        ? "wide"
+        : canvasAspect <= 0.72
+          ? "tall"
+          : "compact";
   const copyLength = scene.primary.length + scene.secondary.length;
-  const copyClass = copyLength > 135 ? "copy-very-long" : copyLength > 75 ? "copy-long" : "copy-standard";
-  const brand = project.brand || { position: "top-right" as LogoPosition, width: 18, opacity: 1, padding: 8, customX: 80, customY: 12, visibility: "all" as LogoVisibility, animation: "fade" as LogoAnimation };
-  const logoIsVisible = brand.visibility === "all" || (brand.visibility === "first" && sceneIndex === 0) || (brand.visibility === "last" && sceneIndex === project.scenes.length - 1);
+  const copyClass =
+    copyLength > 135
+      ? "copy-very-long"
+      : copyLength > 75
+        ? "copy-long"
+        : "copy-standard";
+  const brand = project.brand || {
+    position: "top-right" as LogoPosition,
+    width: 18,
+    opacity: 1,
+    padding: 8,
+    customX: 80,
+    customY: 12,
+    visibility: "all" as LogoVisibility,
+    animation: "fade" as LogoAnimation,
+  };
+  const logoIsVisible =
+    brand.visibility === "all" ||
+    (brand.visibility === "first" && sceneIndex === 0) ||
+    (brand.visibility === "last" && sceneIndex === project.scenes.length - 1);
   return (
     <div
       ref={compositionRef}
@@ -1425,9 +2611,20 @@ function Preview({
     >
       {underlay &&
         (isVideo ? (
-          <PreviewVideo src={underlay} playing={playing} grayscale={project.media.underlayGrayscale || 0} playbackRate={project.media.underlayPlaybackRate ?? 1} />
+          <PreviewVideo
+            src={underlay}
+            playing={playing}
+            grayscale={project.media.underlayGrayscale || 0}
+            playbackRate={project.media.underlayPlaybackRate ?? 1}
+          />
         ) : (
-          <img src={underlay} alt="Uploaded underlay preview" style={{ filter: `grayscale(${project.media.underlayGrayscale || 0}%)` }} />
+          <img
+            src={underlay}
+            alt="Uploaded underlay preview"
+            style={{
+              filter: `grayscale(${project.media.underlayGrayscale || 0}%)`,
+            }}
+          />
         ))}
       <div className="backdrop" />
       {featureMedia && (
@@ -1469,22 +2666,44 @@ function Preview({
           aria-hidden="true"
           key={`${decoration.type}-${index}`}
           className={`generated-decoration generated-decoration-${decoration.animation}`}
-          style={{
-            left: `${decoration.x}%`, top: `${decoration.y}%`, width: `${decoration.width}%`, height: `${decoration.height}%`,
-            opacity: decoration.opacity, borderRadius: decoration.type === "circle" ? "50%" : `${decoration.radius}%`,
-            background: `var(--${decoration.color})`, "--decoration-rotation": `${decoration.rotation}deg`,
-          } as React.CSSProperties}
+          style={
+            {
+              left: `${decoration.x}%`,
+              top: `${decoration.y}%`,
+              width: `${decoration.width}%`,
+              height: `${decoration.height}%`,
+              opacity: decoration.opacity,
+              borderRadius:
+                decoration.type === "circle" ? "50%" : `${decoration.radius}%`,
+              background: `var(--${decoration.color})`,
+              "--decoration-rotation": `${decoration.rotation}deg`,
+            } as React.CSSProperties
+          }
         />
       ))}
       <div className="composition-frame" />
-      <div className="composition-label">
-        {project.category} · {project.title}
-      </div>
-      <div ref={inner} className="scene-content" style={template.design ? {
-        left: `${template.design.contentX}%`, right: "auto", top: `${template.design.contentY}%`, width: `${template.design.contentWidth}%`,
-        textAlign: template.design.textAlign, "--generated-headline-size": `${9 * template.design.headlineScale}cqw`,
-        "--generated-secondary-size": `${6 * template.design.secondaryScale}cqw`,
-      } as React.CSSProperties : undefined}>
+      {!template.hideNameAndCategory && (
+        <div className="composition-label">
+          {project.category} · {project.title}
+        </div>
+      )}
+      <div
+        ref={inner}
+        className="scene-content"
+        style={
+          template.design
+            ? ({
+                left: `${template.design.contentX}%`,
+                right: "auto",
+                top: `${template.design.contentY}%`,
+                width: `${template.design.contentWidth}%`,
+                textAlign: template.design.textAlign,
+                "--generated-headline-size": `${9 * template.design.headlineScale}cqw`,
+                "--generated-secondary-size": `${6 * template.design.secondaryScale}cqw`,
+              } as React.CSSProperties)
+            : undefined
+        }
+      >
         <p>
           {String(sceneIndex + 1).padStart(2, "0")} /{" "}
           {String(project.scenes.length).padStart(2, "0")}
@@ -1498,7 +2717,11 @@ function Preview({
         <i />
       </div>
       {logoUrl && logoIsVisible && (
-        <BrandLogo key={`${logoUrl}-${sceneIndex}-${brand.animation}`} src={logoUrl} settings={brand} />
+        <BrandLogo
+          key={`${logoUrl}-${sceneIndex}-${brand.animation}`}
+          src={logoUrl}
+          settings={brand}
+        />
       )}
       <div
         className="progress"
@@ -1510,10 +2733,28 @@ function Preview({
   );
 }
 
-function LottieLayer({ settings, playing, sceneIndex, sceneCount, sceneId }: { settings: NonNullable<Project["lottie"]>; playing: boolean; sceneIndex: number; sceneCount: number; sceneId: string }) {
+function LottieLayer({
+  settings,
+  playing,
+  sceneIndex,
+  sceneCount,
+  sceneId,
+}: {
+  settings: NonNullable<Project["lottie"]>;
+  playing: boolean;
+  sceneIndex: number;
+  sceneCount: number;
+  sceneId: string;
+}) {
   const player = useRef<DotLottie | null>(null);
-  const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const visible = settings.visibility === "all" || (settings.visibility === "first" && sceneIndex === 0) || (settings.visibility === "last" && sceneIndex === sceneCount - 1) || (settings.visibility === "current" && settings.sceneId === sceneId);
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const visible =
+    settings.visibility === "all" ||
+    (settings.visibility === "first" && sceneIndex === 0) ||
+    (settings.visibility === "last" && sceneIndex === sceneCount - 1) ||
+    (settings.visibility === "current" && settings.sceneId === sceneId);
   useEffect(() => {
     const instance = player.current;
     if (!instance) return;
@@ -1524,13 +2765,43 @@ function LottieLayer({ settings, playing, sceneIndex, sceneCount, sceneId }: { s
   }, [playing, visible, settings.speed, settings.loop, reduceMotion]);
   if (!visible || !settings.dataUrl) return null;
   return (
-    <div className="lottie-layer" style={{ "--lottie-width": `${settings.width}%`, "--lottie-x": `${settings.x}%`, "--lottie-y": `${settings.y}%`, "--lottie-rotation": `${settings.rotation}deg`, "--lottie-opacity": settings.opacity } as React.CSSProperties}>
-      <DotLottieReact src={settings.dataUrl} autoplay={playing && !reduceMotion} loop={settings.loop} speed={settings.speed} dotLottieRefCallback={(instance) => { player.current = instance; }} aria-label={`Lottie animation: ${settings.name || "uploaded animation"}`} />
+    <div
+      className="lottie-layer"
+      style={
+        {
+          "--lottie-width": `${settings.width}%`,
+          "--lottie-x": `${settings.x}%`,
+          "--lottie-y": `${settings.y}%`,
+          "--lottie-rotation": `${settings.rotation}deg`,
+          "--lottie-opacity": settings.opacity,
+        } as React.CSSProperties
+      }
+    >
+      <DotLottieReact
+        src={settings.dataUrl}
+        autoplay={playing && !reduceMotion}
+        loop={settings.loop}
+        speed={settings.speed}
+        dotLottieRefCallback={(instance) => {
+          player.current = instance;
+        }}
+        aria-label={`Lottie animation: ${settings.name || "uploaded animation"}`}
+      />
     </div>
   );
 }
 
-function PreviewVideo({ src, playing, grayscale, playbackRate }: { src: string; playing: boolean; grayscale: number; playbackRate: number }) {
+function PreviewVideo({
+  src,
+  playing,
+  grayscale,
+  playbackRate,
+}: {
+  src: string;
+  playing: boolean;
+  grayscale: number;
+  playbackRate: number;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (!videoRef.current) return;
@@ -1538,12 +2809,39 @@ function PreviewVideo({ src, playing, grayscale, playbackRate }: { src: string; 
     if (playing) videoRef.current.play().catch(() => {});
     else videoRef.current.pause();
   }, [playbackRate, playing]);
-  return <video ref={videoRef} src={src} autoPlay muted loop playsInline style={{ filter: `grayscale(${grayscale}%)` }} />;
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      autoPlay
+      muted
+      loop
+      playsInline
+      style={{ filter: `grayscale(${grayscale}%)` }}
+    />
+  );
 }
 
-function BrandLogo({ src, settings }: { src: string; settings: NonNullable<Project["brand"]> }) {
+function BrandLogo({
+  src,
+  settings,
+}: {
+  src: string;
+  settings: NonNullable<Project["brand"]>;
+}) {
   return (
-    <div className={`brand-logo brand-logo-${settings.position} logo-animation-${settings.animation}`} style={{ "--logo-width": `${settings.width}%`, "--logo-opacity": settings.opacity, "--logo-padding": `${settings.padding}%`, "--logo-x": `${settings.customX}%`, "--logo-y": `${settings.customY}%` } as React.CSSProperties}>
+    <div
+      className={`brand-logo brand-logo-${settings.position} logo-animation-${settings.animation}`}
+      style={
+        {
+          "--logo-width": `${settings.width}%`,
+          "--logo-opacity": settings.opacity,
+          "--logo-padding": `${settings.padding}%`,
+          "--logo-x": `${settings.customX}%`,
+          "--logo-y": `${settings.customY}%`,
+        } as React.CSSProperties
+      }
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="Uploaded brand logo" />
     </div>
@@ -1591,7 +2889,10 @@ function MaskedMedia({
         } as React.CSSProperties
       }
     >
-      <div className="masked-media-viewport" style={{ filter: `grayscale(${grayscale}%)` }}>
+      <div
+        className="masked-media-viewport"
+        style={{ filter: `grayscale(${grayscale}%)` }}
+      >
         {isVideo ? (
           <video ref={videoRef} src={src} autoPlay muted loop playsInline />
         ) : (
@@ -1599,13 +2900,15 @@ function MaskedMedia({
           <img src={src} alt="Uploaded masked feature preview" />
         )}
       </div>
-      {settings.enabled && settings.preset === "clock" && settings.showGuide && (
-        <div className="mask-clock-guide" aria-hidden="true">
-          <i className="mask-clock-ring" />
-          <i className="mask-clock-hand" />
-          <i className="mask-clock-pin" />
-        </div>
-      )}
+      {settings.enabled &&
+        settings.preset === "clock" &&
+        settings.showGuide && (
+          <div className="mask-clock-guide" aria-hidden="true">
+            <i className="mask-clock-ring" />
+            <i className="mask-clock-hand" />
+            <i className="mask-clock-pin" />
+          </div>
+        )}
     </div>
   );
 }
