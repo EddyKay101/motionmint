@@ -19,6 +19,7 @@ import {
 import { buildStandaloneHtml } from "../lib/html-export";
 import type { TemplateConfig } from "../lib/starter-templates";
 import { authClient } from "../lib/auth-client";
+import { processImageForTransparentBackground } from "../lib/background-removal";
 
 type Ratio = "9:16" | "1:1" | "16:9";
 type MotionPreset =
@@ -79,6 +80,12 @@ type Project = {
     featureType?: string;
     soundtrackName?: string;
     logoName?: string;
+    bannerImageName?: string;
+    bannerImageX?: number;
+    bannerImageY?: number;
+    bannerImageWidth?: number;
+    bannerImageOpacity?: number;
+    bannerImageRotation?: number;
     underlayGrayscale?: number;
     featureGrayscale?: number;
     underlayPlaybackRate?: number;
@@ -595,6 +602,8 @@ export function MotionMintApp() {
   const [maskReplay, setMaskReplay] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string>();
   const [logoUrl, setLogoUrl] = useState<string>();
+  const [bannerImageUrl, setBannerImageUrl] = useState<string>();
+  const [removingBackground, setRemovingBackground] = useState(false);
   const [sceneIndex, setSceneIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [freezeWhileEditing, setFreezeWhileEditing] = useState(true);
@@ -702,7 +711,7 @@ export function MotionMintApp() {
   };
   const upload = (
     file: File | undefined,
-    kind: "underlay" | "feature" | "soundtrack" | "logo",
+    kind: "underlay" | "feature" | "soundtrack" | "logo" | "banner-image",
   ) => {
     if (!file) return;
     const url = URL.createObjectURL(file);
@@ -731,6 +740,20 @@ export function MotionMintApp() {
       if (logoUrl) URL.revokeObjectURL(logoUrl);
       setLogoUrl(url);
       update({ media: { ...project.media, logoName: file.name } });
+    } else if (kind === "banner-image") {
+      if (bannerImageUrl) URL.revokeObjectURL(bannerImageUrl);
+      setBannerImageUrl(url);
+      update({
+        media: {
+          ...project.media,
+          bannerImageName: file.name,
+          bannerImageX: project.media.bannerImageX ?? 50,
+          bannerImageY: project.media.bannerImageY ?? 50,
+          bannerImageWidth: project.media.bannerImageWidth ?? 30,
+          bannerImageOpacity: project.media.bannerImageOpacity ?? 1,
+          bannerImageRotation: project.media.bannerImageRotation ?? 0,
+        },
+      });
     } else {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       setAudioUrl(url);
@@ -1119,6 +1142,7 @@ export function MotionMintApp() {
             featureMedia={featureMedia}
             maskReplay={maskReplay}
             logoUrl={logoUrl}
+            bannerImageUrl={bannerImageUrl}
             compositionRef={compositionRef}
           />
           <div className="transport">
@@ -1817,6 +1841,191 @@ export function MotionMintApp() {
                 </button>
               )}
             </div>
+            <div className="brand-upload-row">
+              <label className="upload logo-upload">
+                Transparent banner image
+                <input
+                  type="file"
+                  accept="image/png,image/webp,image/jpeg,image/svg+xml"
+                  onChange={(e) => {
+                    upload(e.target.files?.[0], "banner-image");
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <span>
+                  {project.media.bannerImageName ||
+                    "Choose PNG, SVG, WebP or JPG"}
+                </span>
+              </label>
+              {bannerImageUrl && (
+                <>
+                  <button
+                    type="button"
+                    className="remove-logo"
+                    onClick={() => {
+                      URL.revokeObjectURL(bannerImageUrl);
+                      setBannerImageUrl(undefined);
+                      update({
+                        media: {
+                          ...project.media,
+                          bannerImageName: undefined,
+                          bannerImageX: 50,
+                          bannerImageY: 50,
+                          bannerImageWidth: 30,
+                          bannerImageOpacity: 1,
+                          bannerImageRotation: 0,
+                        },
+                      });
+                    }}
+                  >
+                    Remove banner image
+                  </button>
+                  <button
+                    type="button"
+                    className="remove-logo"
+                    disabled={removingBackground}
+                    onClick={async () => {
+                      if (!bannerImageUrl) return;
+                      setRemovingBackground(true);
+                      setStatus("Removing background…");
+                      try {
+                        const cleaned =
+                          await processImageForTransparentBackground(
+                            bannerImageUrl,
+                            28,
+                          );
+                        const nextUrl = cleaned;
+                        if (bannerImageUrl.startsWith("blob:")) {
+                          URL.revokeObjectURL(bannerImageUrl);
+                        }
+                        setBannerImageUrl(nextUrl);
+                        setStatus("Background removed");
+                      } catch (error) {
+                        console.error(error);
+                        setStatus(
+                          "Could not remove background from this image",
+                        );
+                      } finally {
+                        setRemovingBackground(false);
+                      }
+                    }}
+                  >
+                    {removingBackground ? "Processing…" : "Remove background"}
+                  </button>
+                </>
+              )}
+            </div>
+            {bannerImageUrl && (
+              <div className="style-grid brand-grid">
+                <label>
+                  Banner width
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="10"
+                      max="80"
+                      value={project.media.bannerImageWidth ?? 30}
+                      onChange={(e) =>
+                        update({
+                          media: {
+                            ...project.media,
+                            bannerImageWidth: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>{project.media.bannerImageWidth ?? 30}%</output>
+                  </div>
+                </label>
+                <label>
+                  Opacity
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      value={project.media.bannerImageOpacity ?? 1}
+                      onChange={(e) =>
+                        update({
+                          media: {
+                            ...project.media,
+                            bannerImageOpacity: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>
+                      {Math.round(
+                        (project.media.bannerImageOpacity ?? 1) * 100,
+                      )}
+                      %
+                    </output>
+                  </div>
+                </label>
+                <label>
+                  Horizontal position
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={project.media.bannerImageX ?? 50}
+                      onChange={(e) =>
+                        update({
+                          media: {
+                            ...project.media,
+                            bannerImageX: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>{project.media.bannerImageX ?? 50}%</output>
+                  </div>
+                </label>
+                <label>
+                  Vertical position
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={project.media.bannerImageY ?? 50}
+                      onChange={(e) =>
+                        update({
+                          media: {
+                            ...project.media,
+                            bannerImageY: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>{project.media.bannerImageY ?? 50}%</output>
+                  </div>
+                </label>
+                <label>
+                  Rotation
+                  <div className="range-line">
+                    <input
+                      type="range"
+                      min="-180"
+                      max="180"
+                      step="5"
+                      value={project.media.bannerImageRotation ?? 0}
+                      onChange={(e) =>
+                        update({
+                          media: {
+                            ...project.media,
+                            bannerImageRotation: +e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <output>{project.media.bannerImageRotation ?? 0}°</output>
+                  </div>
+                </label>
+              </div>
+            )}
             <div className="style-grid brand-grid">
               <label>
                 Position
@@ -2518,6 +2727,7 @@ function Preview({
   underlay,
   featureMedia,
   logoUrl,
+  bannerImageUrl,
   compositionRef,
   maskReplay,
 }: {
@@ -2528,6 +2738,7 @@ function Preview({
   underlay?: string;
   featureMedia?: string;
   logoUrl?: string;
+  bannerImageUrl?: string;
   compositionRef: React.RefObject<HTMLDivElement | null>;
   maskReplay: number;
 }) {
@@ -2780,6 +2991,23 @@ function Preview({
         )}
         <i />
       </div>
+      {bannerImageUrl && (
+        <div
+          className="transparent-banner-image"
+          style={
+            {
+              left: `${project.media.bannerImageX ?? 50}%`,
+              top: `${project.media.bannerImageY ?? 50}%`,
+              width: `${project.media.bannerImageWidth ?? 30}%`,
+              opacity: project.media.bannerImageOpacity ?? 1,
+              transform: `translate(-50%, -50%) rotate(${project.media.bannerImageRotation ?? 0}deg)`,
+            } as React.CSSProperties
+          }
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={bannerImageUrl} alt="Transparent banner asset" />
+        </div>
+      )}
       {logoUrl && logoIsVisible && (
         <BrandLogo
           key={`${logoUrl}-${sceneIndex}-${brand.animation}`}
