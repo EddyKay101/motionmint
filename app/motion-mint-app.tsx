@@ -76,11 +76,14 @@ type Project = {
   media: {
     underlayName?: string;
     underlayType?: string;
+    underlayEnabled?: boolean;
     featureName?: string;
     featureType?: string;
+    featureEnabled?: boolean;
     soundtrackName?: string;
     logoName?: string;
     bannerImageName?: string;
+    bannerImageEnabled?: boolean;
     bannerImageX?: number;
     bannerImageY?: number;
     bannerImageWidth?: number;
@@ -557,6 +560,9 @@ const makeProject = (template: Template): Project => ({
     ],
   },
   media: {
+    underlayEnabled: true,
+    featureEnabled: true,
+    bannerImageEnabled: true,
     mask: {
       enabled: true,
       preset: "clock",
@@ -1463,30 +1469,66 @@ export function MotionMintApp() {
             </label>
           </div>
           <div className="upload-grid">
-            <label className="upload">
-              Background image/video
-              <input
-                type="file"
-                accept="image/*,video/*"
-                onChange={(e) => {
-                  upload(e.target.files?.[0], "underlay");
-                  e.currentTarget.value = "";
-                }}
-              />
-              <span>{project.media.underlayName || "Choose underlay"}</span>
-            </label>
-            <label className="upload featured-upload">
-              Masked image/video
-              <input
-                type="file"
-                accept="image/*,video/*"
-                onChange={(e) => {
-                  upload(e.target.files?.[0], "feature");
-                  e.currentTarget.value = "";
-                }}
-              />
-              <span>{project.media.featureName || "Choose feature media"}</span>
-            </label>
+            <div>
+              <label className="upload">
+                Background image/video
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => {
+                    upload(e.target.files?.[0], "underlay");
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <span>{project.media.underlayName || "Choose underlay"}</span>
+              </label>
+              <label className="inline-toggle">
+                <input
+                  type="checkbox"
+                  checked={project.media.underlayEnabled ?? true}
+                  onChange={(e) =>
+                    update({
+                      media: {
+                        ...project.media,
+                        underlayEnabled: e.target.checked,
+                      },
+                    })
+                  }
+                />
+                Show background media
+              </label>
+            </div>
+            <div>
+              <label className="upload featured-upload">
+                Masked image/video
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => {
+                    upload(e.target.files?.[0], "feature");
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <span>
+                  {project.media.featureName || "Choose feature media"}
+                </span>
+              </label>
+              <label className="inline-toggle">
+                <input
+                  type="checkbox"
+                  checked={project.media.featureEnabled ?? true}
+                  onChange={(e) =>
+                    update({
+                      media: {
+                        ...project.media,
+                        featureEnabled: e.target.checked,
+                      },
+                    })
+                  }
+                />
+                Show masked media
+              </label>
+            </div>
             <label className="upload">
               Soundtrack / voice
               <input
@@ -1916,6 +1958,23 @@ export function MotionMintApp() {
               )}
             </div>
             {bannerImageUrl && (
+              <label className="inline-toggle">
+                <input
+                  type="checkbox"
+                  checked={project.media.bannerImageEnabled ?? true}
+                  onChange={(e) =>
+                    update({
+                      media: {
+                        ...project.media,
+                        bannerImageEnabled: e.target.checked,
+                      },
+                    })
+                  }
+                />
+                Show transparent banner image
+              </label>
+            )}
+            {bannerImageUrl && (project.media.bannerImageEnabled ?? true) && (
               <div className="style-grid brand-grid">
                 <label>
                   Banner width
@@ -2822,13 +2881,18 @@ function Preview({
     );
     return () => clearTimeout(timer.current);
   }, [playing, sceneIndex, scene.duration, project.scenes.length]);
+  const underlayVisible = project.media.underlayEnabled ?? true;
+  const featureVisible = project.media.featureEnabled ?? true;
+  const bannerVisible = project.media.bannerImageEnabled ?? true;
   const isVideo = Boolean(
     underlay &&
+    underlayVisible &&
     (project.media.underlayType?.startsWith("video/") ||
       project.media.underlayName?.match(/\.(mp4|webm|mov|m4v|ogv)$/i)),
   );
   const featureIsVideo = Boolean(
     featureMedia &&
+    featureVisible &&
     (project.media.featureType?.startsWith("video/") ||
       project.media.featureName?.match(/\.(mp4|webm|mov|m4v|ogv)$/i)),
   );
@@ -2880,7 +2944,8 @@ function Preview({
         } as React.CSSProperties
       }
     >
-      {underlay &&
+      {underlayVisible &&
+        underlay &&
         (isVideo ? (
           <PreviewVideo
             src={underlay}
@@ -2898,7 +2963,7 @@ function Preview({
           />
         ))}
       <div className="backdrop" />
-      {featureMedia && (
+      {featureVisible && featureMedia && (
         <MaskedMedia
           key={`${featureMedia}-${project.media.mask?.preset || "clock"}-${maskReplay}`}
           src={featureMedia}
@@ -2991,7 +3056,7 @@ function Preview({
         )}
         <i />
       </div>
-      {bannerImageUrl && (
+      {bannerImageUrl && bannerVisible && (
         <div
           className="transparent-banner-image"
           style={

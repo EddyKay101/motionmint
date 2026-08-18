@@ -1006,6 +1006,18 @@ button {
   color: #5d3f70;
   font-weight: 800;
 }
+.inline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4e534c;
+}
+.inline-toggle input {
+  margin: 0;
+}
 .brand-grid {
   margin-top: 14px;
 }
@@ -1020,9 +1032,10 @@ button {
 }
 .transparent-banner-image {
   position: absolute;
-  z-index: 4;
+  z-index: 6;
   pointer-events: none;
   transform-origin: center;
+  isolation: isolate;
 }
 .transparent-banner-image img {
   display: block;
