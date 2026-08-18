@@ -70,6 +70,7 @@ type Project = {
     atmosphereIntensity?: number;
     atmosphereColor?: string;
     motionPreset?: MotionPreset;
+    cascadeColors?: [string, string, string, string, string, string];
   };
   media: {
     underlayName?: string;
@@ -539,6 +540,7 @@ const makeProject = (template: Template): Project => ({
       presetForTemplate[template.id] ||
       presetForAnimation[template.animation] ||
       "horizon",
+    cascadeColors: [template.colors[1], "#ef6b66", "#f2c84b", "#6fccc7", "#8c72ca", template.colors[1]],
   },
   media: {
     mask: {
@@ -2360,6 +2362,32 @@ export function MotionMintApp() {
                   }
                 </small>
               </label>
+              {(project.theme.motionPreset || "horizon") === "cascade" && (
+                <fieldset className="cascade-colors">
+                  <legend>Cascade colors</legend>
+                  <div className="color-grid">
+                    {(project.theme.cascadeColors || [project.theme.accent, "#ef6b66", "#f2c84b", "#6fccc7", "#8c72ca", project.theme.accent]).map((color, index) => (
+                      <label key={index}>
+                        <span>Bar {index + 1}</span>
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => {
+                            const newColors = [...(project.theme.cascadeColors || [project.theme.accent, "#ef6b66", "#f2c84b", "#6fccc7", "#8c72ca", project.theme.accent])] as [string, string, string, string, string, string];
+                            newColors[index] = e.target.value;
+                            update({
+                              theme: {
+                                ...project.theme,
+                                cascadeColors: newColors,
+                              },
+                            });
+                          }}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
               <label>
                 Three.js atmosphere
                 <select
@@ -2638,7 +2666,11 @@ function Preview({
           playing={playing}
         />
       )}
-      <PersistentMotion preset={motionPreset} sceneIndex={sceneIndex} />
+      <PersistentMotion 
+        preset={motionPreset} 
+        sceneIndex={sceneIndex} 
+        cascadeColors={project.theme.cascadeColors}
+      />
       {(project.theme.atmosphere || "none") !== "none" && (
         <Atmosphere
           preset={
@@ -2916,9 +2948,11 @@ function MaskedMedia({
 function PersistentMotion({
   preset,
   sceneIndex,
+  cascadeColors,
 }: {
   preset: MotionPreset;
   sceneIndex: number;
+  cascadeColors?: [string, string, string, string, string, string];
 }) {
   return (
     <div
@@ -2933,6 +2967,14 @@ function PersistentMotion({
           "--turn": `${sceneIndex * 25}deg`,
           "--turn-back": `${sceneIndex * -30}deg`,
           "--shape-scale": 1 + sceneIndex * 0.14,
+          ...(cascadeColors && {
+            "--cascade-1": cascadeColors[0],
+            "--cascade-2": cascadeColors[1],
+            "--cascade-3": cascadeColors[2],
+            "--cascade-4": cascadeColors[3],
+            "--cascade-5": cascadeColors[4],
+            "--cascade-6": cascadeColors[5],
+          }),
         } as React.CSSProperties
       }
     >
