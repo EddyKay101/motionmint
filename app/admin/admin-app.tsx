@@ -44,6 +44,7 @@ const blank = (): FormState => ({
     animation: "fade",
   },
   hideNameAndCategory: false,
+  hideSceneIndex: false,
 });
 
 const useCaseOptions = [
@@ -166,6 +167,7 @@ export function AdminApp() {
         animation: "fade",
       },
       hideNameAndCategory: item.config.hideNameAndCategory || false,
+      hideSceneIndex: item.config.hideSceneIndex || false,
       colors: [...item.config.colors],
       scenes: item.config.scenes.map((scene) => ({ ...scene })),
     });
@@ -644,6 +646,16 @@ export function AdminApp() {
                     }
                   />{" "}
                   Hide name and category in creator gallery
+                </label>
+                <label className="admin-check">
+                  <input
+                    type="checkbox"
+                    checked={form.hideSceneIndex || false}
+                    onChange={(event) =>
+                      update("hideSceneIndex", event.target.checked)
+                    }
+                  />{" "}
+                  Hide scene index (1/2, 2/2…) on the banner
                 </label>
               </fieldset>
 

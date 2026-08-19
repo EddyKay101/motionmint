@@ -53,6 +53,7 @@ export type TemplateConfig = {
     animation?: string;
   };
   hideNameAndCategory?: boolean;
+  hideSceneIndex?: boolean;
 };
 
 export const starterTemplateConfigs: TemplateConfig[] = [

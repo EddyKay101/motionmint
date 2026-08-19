@@ -554,11 +554,13 @@ button {
 .scene-content {
   position: absolute;
   z-index: 2;
-  left: max(var(--safe-inset, 8%), 7%);
-  right: max(var(--safe-inset, 8%), 7%);
+  left: calc(max(var(--safe-inset, 8%), 7%) + var(--content-pad, 0%));
+  right: calc(max(var(--safe-inset, 8%), 7%) + var(--content-pad, 0%));
   top: 50%;
   transform: translateY(-50%);
-  max-height: calc(100% - (var(--safe-inset, 8%) * 2) - 4%);
+  max-height: calc(
+    100% - (var(--safe-inset, 8%) * 2) - (var(--content-pad, 0%) * 2) - 4%
+  );
   overflow: hidden;
 }
 .scene-content p {
@@ -660,8 +662,8 @@ button {
   font-size: clamp(13px, min(7cqw, 5cqh), 34px);
 }
 .layout-centered-poster .scene-content {
-  left: 12%;
-  right: 12%;
+  left: calc(12% + var(--content-pad, 0%));
+  right: calc(12% + var(--content-pad, 0%));
   top: 52%;
   text-align: center;
 }
@@ -678,7 +680,7 @@ button {
   text-align: center;
 }
 .layout-split-stage .scene-content {
-  right: 48%;
+  right: calc(48% + var(--content-pad, 0%));
   top: 54%;
 }
 .layout-split-stage .scene-content h3 {
@@ -700,8 +702,8 @@ button {
   max-width: 78%;
 }
 .layout-asymmetric-grid .scene-content {
-  left: 32%;
-  right: 7%;
+  left: calc(32% + var(--content-pad, 0%));
+  right: calc(7% + var(--content-pad, 0%));
   top: 43%;
   padding-left: 5%;
   border-left: clamp(3px, 1cqw, 8px) solid var(--accent);

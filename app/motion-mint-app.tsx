@@ -72,6 +72,8 @@ type Project = {
     atmosphereColor?: string;
     motionPreset?: MotionPreset;
     cascadeColors?: [string, string, string, string, string, string];
+    showFrame?: boolean;
+    contentPadding?: number;
   };
   media: {
     underlayName?: string;
@@ -558,6 +560,8 @@ const makeProject = (template: Template): Project => ({
       "#8c72ca",
       template.colors[1],
     ],
+    showFrame: true,
+    contentPadding: 4,
   },
   media: {
     underlayEnabled: true,
@@ -2608,6 +2612,39 @@ export function MotionMintApp() {
                   ))}
                 </select>
               </label>
+              <label className="inline-toggle">
+                <input
+                  type="checkbox"
+                  checked={project.theme.showFrame ?? true}
+                  onChange={(e) =>
+                    update({
+                      theme: { ...project.theme, showFrame: e.target.checked },
+                    })
+                  }
+                />
+                Show border frame
+              </label>
+              <label>
+                Text padding
+                <div className="range-line">
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="0.5"
+                    value={project.theme.contentPadding ?? 4}
+                    onChange={(e) =>
+                      update({
+                        theme: {
+                          ...project.theme,
+                          contentPadding: +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <output>{project.theme.contentPadding ?? 4}%</output>
+                </div>
+              </label>
               <label className="motion-select">
                 Motion system
                 <select
@@ -2940,6 +2977,7 @@ function Preview({
           "--display-weight": typography.weight,
           "--display-tracking": typography.tracking,
           "--safe-inset": `${previewProfile.safeInset}%`,
+          "--content-pad": `${project.theme.contentPadding ?? 4}%`,
           aspectRatio: `${previewSize.width} / ${previewSize.height}`,
         } as React.CSSProperties
       }
@@ -3021,7 +3059,9 @@ function Preview({
           }
         />
       ))}
-      <div className="composition-frame" />
+      {(project.theme.showFrame ?? true) && (
+        <div className="composition-frame" />
+      )}
       {!template.hideNameAndCategory && (
         <div className="composition-label">
           {project.category} · {project.title}
@@ -3044,10 +3084,12 @@ function Preview({
             : undefined
         }
       >
-        <p>
-          {String(sceneIndex + 1).padStart(2, "0")} /{" "}
-          {String(project.scenes.length).padStart(2, "0")}
-        </p>
+        {!template.hideSceneIndex && (
+          <p>
+            {String(sceneIndex + 1).padStart(2, "0")} /{" "}
+            {String(project.scenes.length).padStart(2, "0")}
+          </p>
+        )}
         <h3 dir="auto">{scene.primary}</h3>
         {scene.secondary && (
           <h4 dir="auto" lang="ar">
