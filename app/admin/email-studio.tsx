@@ -20,21 +20,36 @@ const blankConfig = (): EmailCampaignConfig => ({
   accent: "#6d5bff",
   backgroundColor: "#f7f5fb",
   textColor: "#14121d",
-  footerText: "You're receiving this email because you created a MotionMint account.",
+  footerText:
+    "You're receiving this email because you created a MotionMint account.",
   blocks: [
     { type: "heading", text: "Your next campaign starts here" },
-    { type: "paragraph", text: "Tell people what's new, what's launching, or what's worth their time." },
-    { type: "button", label: "Open the studio", href: "https://motionmint.app/create" },
+    {
+      type: "paragraph",
+      text: "Tell people what's new, what's launching, or what's worth their time.",
+    },
+    {
+      type: "button",
+      label: "Open the studio",
+      href: "https://motionmint.app/create",
+    },
   ],
 });
 
-const blankForm = () => ({ name: "New campaign", subject: "", preheader: "", config: blankConfig() });
+const blankForm = () => ({
+  name: "New campaign",
+  subject: "",
+  preheader: "",
+  config: blankConfig(),
+});
 
 export function EmailStudio() {
   const [items, setItems] = useState<CampaignRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
   const [form, setForm] = useState(blankForm());
-  const [state, setState] = useState<"loading" | "ready" | "saving" | "error">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "saving" | "error">(
+    "loading",
+  );
   const [message, setMessage] = useState("Loading campaigns…");
   const [recipients, setRecipients] = useState("");
   const [studioBrief, setStudioBrief] = useState(
@@ -43,7 +58,9 @@ export function EmailStudio() {
   const [studioTone, setStudioTone] = useState("Confident");
   const [studioGoal, setStudioGoal] = useState("");
   const [concepts, setConcepts] = useState<EmailStudioConcept[]>([]);
-  const [studioState, setStudioState] = useState<"idle" | "generating" | "error">("idle");
+  const [studioState, setStudioState] = useState<
+    "idle" | "generating" | "error"
+  >("idle");
   const [studioMessage, setStudioMessage] = useState(
     "AI copy director ready · prompts are sent only when you press Generate",
   );
@@ -51,7 +68,9 @@ export function EmailStudio() {
   const load = useCallback(async () => {
     setState("loading");
     try {
-      const response = await fetch("/api/admin/email-campaigns", { cache: "no-store" });
+      const response = await fetch("/api/admin/email-campaigns", {
+        cache: "no-store",
+      });
       if (!response.ok) throw new Error("The local database is unavailable.");
       const data = (await response.json()) as { campaigns: CampaignRecord[] };
       setItems(data.campaigns);
@@ -59,7 +78,9 @@ export function EmailStudio() {
       setMessage(`${data.campaigns.length} campaigns`);
     } catch (error) {
       setState("error");
-      setMessage(error instanceof Error ? error.message : "Could not load campaigns.");
+      setMessage(
+        error instanceof Error ? error.message : "Could not load campaigns.",
+      );
     }
   }, []);
 
@@ -69,7 +90,12 @@ export function EmailStudio() {
 
   const select = (item: CampaignRecord) => {
     setSelectedId(item.id);
-    setForm({ name: item.name, subject: item.subject, preheader: item.preheader || "", config: item.config });
+    setForm({
+      name: item.name,
+      subject: item.subject,
+      preheader: item.preheader || "",
+      config: item.config,
+    });
     setMessage(`Editing ${item.name}`);
   };
 
@@ -93,7 +119,9 @@ export function EmailStudio() {
     setState("saving");
     setMessage("Saving campaign…");
     const response = await fetch(
-      selectedId ? `/api/admin/email-campaigns/${selectedId}` : "/api/admin/email-campaigns",
+      selectedId
+        ? `/api/admin/email-campaigns/${selectedId}`
+        : "/api/admin/email-campaigns",
       {
         method: selectedId ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
@@ -101,7 +129,9 @@ export function EmailStudio() {
       },
     );
     if (!response.ok) {
-      const result = (await response.json().catch(() => ({}))) as { error?: string };
+      const result = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
       setState("error");
       setMessage(result.error ?? "Could not save the campaign.");
       return;
@@ -126,13 +156,23 @@ export function EmailStudio() {
       setMessage("Add at least one recipient email.");
       return;
     }
-    const response = await fetch(`/api/admin/email-campaigns/${selectedId}/send`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ recipients: list }),
-    });
-    const result = (await response.json().catch(() => ({}))) as { queued?: number; error?: string };
-    setMessage(response.ok ? `${result.queued} recipient(s) queued for sending.` : result.error || "Could not queue send.");
+    const response = await fetch(
+      `/api/admin/email-campaigns/${selectedId}/send`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ recipients: list }),
+      },
+    );
+    const result = (await response.json().catch(() => ({}))) as {
+      queued?: number;
+      error?: string;
+    };
+    setMessage(
+      response.ok
+        ? `${result.queued} recipient(s) queued for sending.`
+        : result.error || "Could not queue send.",
+    );
     await load();
   };
 
@@ -143,7 +183,11 @@ export function EmailStudio() {
       const response = await fetch("/api/admin/email-studio", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt: studioBrief, tone: studioTone, goal: studioGoal || undefined }),
+        body: JSON.stringify({
+          prompt: studioBrief,
+          tone: studioTone,
+          goal: studioGoal || undefined,
+        }),
       });
       const result = (await response.json()) as {
         concepts?: EmailStudioConcept[];
@@ -152,7 +196,8 @@ export function EmailStudio() {
         provider?: string;
         simulated?: boolean;
       };
-      if (!response.ok || !result.concepts) throw new Error(result.error || "Could not generate email drafts.");
+      if (!response.ok || !result.concepts)
+        throw new Error(result.error || "Could not generate email drafts.");
       setConcepts(result.concepts);
       setStudioState("idle");
       setStudioMessage(
@@ -160,13 +205,22 @@ export function EmailStudio() {
       );
     } catch (error) {
       setStudioState("error");
-      setStudioMessage(error instanceof Error ? error.message : "Could not generate email drafts.");
+      setStudioMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not generate email drafts.",
+      );
     }
   };
 
   const applyConcept = (concept: EmailStudioConcept) => {
     setSelectedId(undefined);
-    setForm({ name: concept.name, subject: concept.subject, preheader: concept.preheader, config: concept.config });
+    setForm({
+      name: concept.name,
+      subject: concept.subject,
+      preheader: concept.preheader,
+      config: concept.config,
+    });
     setMessage(`Draft "${concept.name}" loaded. Review and save.`);
   };
 
@@ -190,10 +244,19 @@ export function EmailStudio() {
           </button>
         </div>
         <div className="admin-template-list" aria-label="Email campaigns">
-          {state === "loading" && !items.length && <p className="admin-empty">Loading…</p>}
+          {state === "loading" && !items.length && (
+            <p className="admin-empty">Loading…</p>
+          )}
           {items.map((item) => (
-            <button key={item.id} className={selectedId === item.id ? "active" : ""} onClick={() => select(item)}>
-              <span className="admin-swatch" style={{ background: item.config.accent }} />
+            <button
+              key={item.id}
+              className={selectedId === item.id ? "active" : ""}
+              onClick={() => select(item)}
+            >
+              <span
+                className="admin-swatch"
+                style={{ background: item.config.accent }}
+              />
               <span>
                 <b>{item.name}</b>
                 <small>{item.subject}</small>
@@ -207,55 +270,92 @@ export function EmailStudio() {
       <section className="admin-editor">
         <div className="admin-editor-head">
           <div>
-            <p className="eyebrow">{selectedId ? "Edit campaign" : "New campaign"}</p>
+            <p className="eyebrow">
+              {selectedId ? "Edit campaign" : "New campaign"}
+            </p>
             <h2>{form.name || "Untitled campaign"}</h2>
             <p>{message}</p>
           </div>
-          <button className="admin-save" onClick={save} disabled={state === "saving"}>
+          <button
+            className="admin-save"
+            onClick={save}
+            disabled={state === "saving"}
+          >
             {state === "saving" ? "Saving…" : "Save campaign"}
           </button>
         </div>
         {state === "error" && <p className="admin-error">{message}</p>}
         <div className="admin-content">
-          <form className="admin-form" onSubmit={(event) => event.preventDefault()}>
+          <form
+            className="admin-form"
+            onSubmit={(event) => event.preventDefault()}
+          >
             <fieldset className="admin-ai-studio">
               <legend>
-                AI Email Studio <span>original drafts, generated on request</span>
+                AI Email Studio{" "}
+                <span>original drafts, generated on request</span>
               </legend>
               <div className="admin-ai-intro">
                 <b>Draft a campaign from a brief</b>
-                <span>{studioState === "generating" ? "Generating…" : "Ready"}</span>
+                <span>
+                  {studioState === "generating" ? "Generating…" : "Ready"}
+                </span>
               </div>
               <label>
                 Creative brief
-                <textarea rows={3} value={studioBrief} onChange={(event) => setStudioBrief(event.target.value)} />
+                <textarea
+                  rows={3}
+                  value={studioBrief}
+                  onChange={(event) => setStudioBrief(event.target.value)}
+                />
               </label>
               <div className="admin-ai-options admin-grid two">
                 <label>
                   Tone
-                  <input value={studioTone} onChange={(event) => setStudioTone(event.target.value)} placeholder="Confident, warm, playful…" />
+                  <input
+                    value={studioTone}
+                    onChange={(event) => setStudioTone(event.target.value)}
+                    placeholder="Confident, warm, playful…"
+                  />
                 </label>
                 <label>
                   Goal
-                  <input value={studioGoal} onChange={(event) => setStudioGoal(event.target.value)} placeholder="Announce a launch, drive a promotion…" />
+                  <input
+                    value={studioGoal}
+                    onChange={(event) => setStudioGoal(event.target.value)}
+                    placeholder="Announce a launch, drive a promotion…"
+                  />
                 </label>
               </div>
               <div className="admin-ai-generate">
-                <button type="button" onClick={generateConcepts} disabled={studioState === "generating"}>
-                  {studioState === "generating" ? "Generating…" : "Generate 3 drafts"}
+                <button
+                  type="button"
+                  onClick={generateConcepts}
+                  disabled={studioState === "generating"}
+                >
+                  {studioState === "generating"
+                    ? "Generating…"
+                    : "Generate 3 drafts"}
                 </button>
-                <small className={studioState === "error" ? "error" : ""}>{studioMessage}</small>
+                <small className={studioState === "error" ? "error" : ""}>
+                  {studioMessage}
+                </small>
               </div>
               {concepts.length > 0 && (
                 <div className="admin-ai-concepts email-concepts">
                   {concepts.map((concept) => (
                     <article key={concept.id}>
                       <div className="admin-ai-concept-copy">
-                        <p>{Math.round(concept.confidence * 100)}% confidence</p>
+                        <p>
+                          {Math.round(concept.confidence * 100)}% confidence
+                        </p>
                         <h4>{concept.subject}</h4>
                         <span>{concept.preheader}</span>
                         <small>{concept.rationale}</small>
-                        <button type="button" onClick={() => applyConcept(concept)}>
+                        <button
+                          type="button"
+                          onClick={() => applyConcept(concept)}
+                        >
                           Use this draft
                         </button>
                       </div>
@@ -270,23 +370,55 @@ export function EmailStudio() {
               <div className="admin-grid two">
                 <label>
                   Campaign name
-                  <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
+                  <input
+                    value={form.name}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                  />
                 </label>
                 <label>
                   Subject line
-                  <input value={form.subject} onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))} />
+                  <input
+                    value={form.subject}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        subject: event.target.value,
+                      }))
+                    }
+                  />
                 </label>
               </div>
               <label>
                 Preheader
-                <input value={form.preheader} onChange={(event) => setForm((current) => ({ ...current, preheader: event.target.value }))} />
+                <input
+                  value={form.preheader}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      preheader: event.target.value,
+                    }))
+                  }
+                />
               </label>
               <div className="admin-grid three">
                 <label>
                   Brand name
                   <input
                     value={form.config.brandName}
-                    onChange={(event) => setForm((current) => ({ ...current, config: { ...current.config, brandName: event.target.value } }))}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        config: {
+                          ...current.config,
+                          brandName: event.target.value,
+                        },
+                      }))
+                    }
                   />
                 </label>
                 <label>
@@ -294,7 +426,15 @@ export function EmailStudio() {
                   <input
                     type="color"
                     value={form.config.accent}
-                    onChange={(event) => setForm((current) => ({ ...current, config: { ...current.config, accent: event.target.value } }))}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        config: {
+                          ...current.config,
+                          accent: event.target.value,
+                        },
+                      }))
+                    }
                   />
                 </label>
                 <label>
@@ -302,7 +442,15 @@ export function EmailStudio() {
                   <input
                     type="color"
                     value={form.config.backgroundColor}
-                    onChange={(event) => setForm((current) => ({ ...current, config: { ...current.config, backgroundColor: event.target.value } }))}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        config: {
+                          ...current.config,
+                          backgroundColor: event.target.value,
+                        },
+                      }))
+                    }
                   />
                 </label>
               </div>
@@ -311,7 +459,8 @@ export function EmailStudio() {
             <fieldset>
               <legend>Content blocks</legend>
               <p className="admin-field-note">
-                Each block becomes an MJML section. Images should point to a hosted PNG export of your MotionMint banner.
+                Each block becomes an MJML section. Images should point to a
+                hosted PNG export of your MotionMint banner.
               </p>
               {form.config.blocks.map((block, index) => (
                 <div key={index} className="admin-scene">
@@ -322,7 +471,12 @@ export function EmailStudio() {
                       onClick={() =>
                         setForm((current) => ({
                           ...current,
-                          config: { ...current.config, blocks: current.config.blocks.filter((_, i) => i !== index) },
+                          config: {
+                            ...current.config,
+                            blocks: current.config.blocks.filter(
+                              (_, i) => i !== index,
+                            ),
+                          },
                         }))
                       }
                     >
@@ -335,25 +489,50 @@ export function EmailStudio() {
                       <textarea
                         rows={block.type === "paragraph" ? 3 : 1}
                         value={block.text}
-                        onChange={(event) => updateBlock(index, { text: event.target.value } as Partial<EmailBlock>)}
+                        onChange={(event) =>
+                          updateBlock(index, {
+                            text: event.target.value,
+                          } as Partial<EmailBlock>)
+                        }
                       />
                     </label>
                   )}
                   {block.type === "image" && (
                     <label>
                       Image URL
-                      <input value={block.src} onChange={(event) => updateBlock(index, { src: event.target.value } as Partial<EmailBlock>)} />
+                      <input
+                        value={block.src}
+                        onChange={(event) =>
+                          updateBlock(index, {
+                            src: event.target.value,
+                          } as Partial<EmailBlock>)
+                        }
+                      />
                     </label>
                   )}
                   {block.type === "button" && (
                     <div className="admin-grid two">
                       <label>
                         Label
-                        <input value={block.label} onChange={(event) => updateBlock(index, { label: event.target.value } as Partial<EmailBlock>)} />
+                        <input
+                          value={block.label}
+                          onChange={(event) =>
+                            updateBlock(index, {
+                              label: event.target.value,
+                            } as Partial<EmailBlock>)
+                          }
+                        />
                       </label>
                       <label>
                         Link
-                        <input value={block.href} onChange={(event) => updateBlock(index, { href: event.target.value } as Partial<EmailBlock>)} />
+                        <input
+                          value={block.href}
+                          onChange={(event) =>
+                            updateBlock(index, {
+                              href: event.target.value,
+                            } as Partial<EmailBlock>)
+                          }
+                        />
                       </label>
                     </div>
                   )}
@@ -365,7 +544,13 @@ export function EmailStudio() {
                 onClick={() =>
                   setForm((current) => ({
                     ...current,
-                    config: { ...current.config, blocks: [...current.config.blocks, { type: "paragraph", text: "New paragraph" }] },
+                    config: {
+                      ...current.config,
+                      blocks: [
+                        ...current.config.blocks,
+                        { type: "paragraph", text: "New paragraph" },
+                      ],
+                    },
                   }))
                 }
               >
@@ -378,14 +563,24 @@ export function EmailStudio() {
                 <legend>Send</legend>
                 <label>
                   Recipients (comma or newline separated)
-                  <textarea rows={3} value={recipients} onChange={(event) => setRecipients(event.target.value)} placeholder="ada@example.com, grace@example.com" />
+                  <textarea
+                    rows={3}
+                    value={recipients}
+                    onChange={(event) => setRecipients(event.target.value)}
+                    placeholder="ada@example.com, grace@example.com"
+                  />
                 </label>
-                <button type="button" className="admin-save" onClick={queueSend}>
+                <button
+                  type="button"
+                  className="admin-save"
+                  onClick={queueSend}
+                >
                   Queue send
                 </button>
                 <p className="admin-field-note">
-                  Sends are queued in the database. Dispatch to your email provider (Resend, Postmark, etc.) runs from a
-                  scheduled worker, not from this request.
+                  Sends are queued in the database. Dispatch to your email
+                  provider (Resend, Postmark, etc.) runs from a scheduled
+                  worker, not from this request.
                 </p>
               </fieldset>
             )}

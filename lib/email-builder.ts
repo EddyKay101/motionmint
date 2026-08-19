@@ -16,11 +16,17 @@ export type EmailCampaignConfig = {
 };
 
 const escapeHtml = (value: string) =>
-  value.replace(/[<>&"]/g, (char) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[char] || char,
+  value.replace(
+    /[<>&"]/g,
+    (char) =>
+      ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[char] || char,
   );
 
-function renderBlockMjml(block: EmailBlock, accent: string, textColor: string): string {
+function renderBlockMjml(
+  block: EmailBlock,
+  accent: string,
+  textColor: string,
+): string {
   switch (block.type) {
     case "image": {
       const image = `<mj-image src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt || "")}" padding="0" />`;
@@ -46,7 +52,10 @@ function renderBlockMjml(block: EmailBlock, accent: string, textColor: string): 
 /** Kept for portability: lets an admin copy this markup into any MJML editor/CLI outside the app. */
 export function buildCampaignMjml(config: EmailCampaignConfig): string {
   const sections = config.blocks
-    .map((block) => `<mj-section>${renderBlockMjml(block, config.accent, config.textColor)}</mj-section>`)
+    .map(
+      (block) =>
+        `<mj-section>${renderBlockMjml(block, config.accent, config.textColor)}</mj-section>`,
+    )
     .join("");
   return `<mjml>
   <mj-head>
@@ -75,13 +84,20 @@ export function buildCampaignMjml(config: EmailCampaignConfig): string {
 // when actually invoked inside the Cloudflare Workers edge runtime, so we
 // emit the same style of email-safe, inline-styled, 600px table markup
 // ourselves instead of depending on it at request time.
-function renderBlockHtml(block: EmailBlock, accent: string, textColor: string): string {
+function renderBlockHtml(
+  block: EmailBlock,
+  accent: string,
+  textColor: string,
+): string {
   const cell = (content: string, padding = "16px 24px") =>
     `<tr><td style="padding:${padding};font-family:Arial,Helvetica,sans-serif;">${content}</td></tr>`;
   switch (block.type) {
     case "image": {
       const img = `<img src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt || "")}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;" />`;
-      return cell(block.href ? `<a href="${escapeHtml(block.href)}">${img}</a>` : img, "0");
+      return cell(
+        block.href ? `<a href="${escapeHtml(block.href)}">${img}</a>` : img,
+        "0",
+      );
     }
     case "heading":
       return cell(
@@ -98,7 +114,9 @@ function renderBlockHtml(block: EmailBlock, accent: string, textColor: string): 
         "20px 24px",
       );
     case "divider":
-      return cell(`<hr style="border:none;border-top:1px solid ${accent};margin:0;" />`);
+      return cell(
+        `<hr style="border:none;border-top:1px solid ${accent};margin:0;" />`,
+      );
     case "spacer":
       return `<tr><td style="height:${block.height || 24}px;line-height:${block.height || 24}px;font-size:0;">&nbsp;</td></tr>`;
     default:
@@ -106,7 +124,10 @@ function renderBlockHtml(block: EmailBlock, accent: string, textColor: string): 
   }
 }
 
-export function compileCampaignHtml(config: EmailCampaignConfig): { html: string; errors: string[] } {
+export function compileCampaignHtml(config: EmailCampaignConfig): {
+  html: string;
+  errors: string[];
+} {
   const rows = config.blocks
     .map((block) => renderBlockHtml(block, config.accent, config.textColor))
     .join("\n");
