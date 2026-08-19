@@ -15,6 +15,13 @@
       "when": 1787048621588,
       "tag": "0001_clammy_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787132673655,
+      "tag": "0002_modern_chameleon",
+      "breakpoints": true
     }
   ]
 }

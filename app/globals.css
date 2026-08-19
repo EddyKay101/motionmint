@@ -1777,6 +1777,20 @@ summary {
   font-size: 13px;
   font-weight: 700;
 }
+.admin-actions button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 8px 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.admin-actions button.active {
+  border-color: var(--ink);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--iris), white 92%);
+}
 .admin-layout {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
@@ -2125,6 +2139,9 @@ summary {
   border: 1px solid #d2caeb;
   border-radius: 10px;
   background: white;
+}
+.admin-ai-concepts.email-concepts article {
+  grid-template-columns: 1fr;
 }
 .admin-ai-concept-preview {
   --admin-base: #151713;

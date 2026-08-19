@@ -100,3 +100,46 @@ export const mediaAssets = sqliteTable(
   },
   (table) => [index("idx_media_assets_project").on(table.projectId, table.ownerKey)],
 );
+
+export const emailCampaigns = sqliteTable(
+  "email_campaigns",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    status: text("status", {
+      enum: ["draft", "scheduled", "sending", "sent", "archived"],
+    })
+      .notNull()
+      .default("draft"),
+    subject: text("subject").notNull(),
+    preheader: text("preheader"),
+    configJson: text("config_json").notNull(),
+    htmlCache: text("html_cache"),
+    scheduledAt: text("scheduled_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_email_campaigns_status").on(table.status)],
+);
+
+export const emailSends = sqliteTable(
+  "email_sends",
+  {
+    id: text("id").primaryKey(),
+    campaignId: text("campaign_id").notNull(),
+    recipient: text("recipient").notNull(),
+    status: text("status", {
+      enum: ["queued", "sent", "failed", "bounced"],
+    })
+      .notNull()
+      .default("queued"),
+    providerMessageId: text("provider_message_id"),
+    errorMessage: text("error_message"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_email_sends_campaign").on(table.campaignId),
+    index("idx_email_sends_status_created").on(table.status, table.createdAt),
+  ],
+);

@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { TemplateConfig } from "../../lib/starter-templates";
 import type { TemplateStudioConcept } from "../../lib/template-studio";
 import { outputProfiles, profileByName } from "../../lib/output-profiles";
+import { EmailStudio } from "./email-studio";
 
 type Status = "draft" | "published" | "archived";
 type RecordItem = {
@@ -96,6 +97,7 @@ function DesignDecorations({ design }: { design?: TemplateConfig["design"] }) {
 }
 
 export function AdminApp() {
+  const [adminView, setAdminView] = useState<"templates" | "email">("templates");
   const [items, setItems] = useState<RecordItem[]>([]);
   const [form, setForm] = useState<FormState>(blank);
   const [selectedId, setSelectedId] = useState<string>();
@@ -321,10 +323,27 @@ export function AdminApp() {
           <span className="admin-label">Template Admin</span>
         </div>
         <div className="admin-actions">
+          <button
+            type="button"
+            className={adminView === "templates" ? "active" : ""}
+            onClick={() => setAdminView("templates")}
+          >
+            Templates
+          </button>
+          <button
+            type="button"
+            className={adminView === "email" ? "active" : ""}
+            onClick={() => setAdminView("email")}
+          >
+            Email
+          </button>
           <span className="dev-warning">Local testing only · no login</span>
           <Link href="/create">Open creator ↗</Link>
         </div>
       </header>
+      {adminView === "email" ? (
+        <EmailStudio />
+      ) : (
       <div className="admin-layout">
         <aside className="admin-sidebar">
           <div className="admin-sidebar-head">
@@ -1038,6 +1057,7 @@ export function AdminApp() {
           </div>
         </section>
       </div>
+      )}
     </main>
   );
 }
