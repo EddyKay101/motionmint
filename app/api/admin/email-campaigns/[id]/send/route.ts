@@ -24,7 +24,7 @@ export async function POST(
       return apiError("At least one valid recipient email is required.");
     const db = getDb();
     const [campaign] = await db
-      .select({ id: emailCampaigns.id })
+      .select({ id: emailCampaigns.id, status: emailCampaigns.status })
       .from(emailCampaigns)
       .where(eq(emailCampaigns.id, id))
       .limit(1);
@@ -40,10 +40,12 @@ export async function POST(
         updatedAt: now,
       })),
     );
-    await db
-      .update(emailCampaigns)
-      .set({ status: "scheduled", updatedAt: now })
-      .where(eq(emailCampaigns.id, id));
+    if (campaign.status !== "published") {
+      await db
+        .update(emailCampaigns)
+        .set({ status: "scheduled", updatedAt: now })
+        .where(eq(emailCampaigns.id, id));
+    }
     return Response.json({ queued: recipients.length }, { status: 202 });
   } catch (error) {
     return databaseError(error);

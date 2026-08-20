@@ -6,4 +6,6 @@ export const metadata: Metadata = {
   description: "Create animated banners, social campaigns and lyric videos.",
 };
 
-export default function CreatePage() { return <MotionMintApp />; }
+export default function CreatePage() {
+  return <MotionMintApp />;
+}

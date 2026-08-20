@@ -184,7 +184,7 @@ export const emailCampaigns = sqliteTable(
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     status: text("status", {
-      enum: ["draft", "scheduled", "sending", "sent", "archived"],
+      enum: ["draft", "published", "scheduled", "sending", "sent", "archived"],
     })
       .notNull()
       .default("draft"),

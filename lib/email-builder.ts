@@ -29,17 +29,17 @@ function renderBlockMjml(
 ): string {
   switch (block.type) {
     case "image": {
-      const image = `<mj-image src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt || "")}" padding="0" />`;
-      return block.href
-        ? `<mj-column><a href="${escapeHtml(block.href)}">${image}</a></mj-column>`
-        : `<mj-column>${image}</mj-column>`;
+      const href = block.href
+        ? ` href="${escapeHtml(block.href)}"`
+        : "";
+      return `<mj-column><mj-image src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt || "")}"${href} target="_blank" padding="0" /></mj-column>`;
     }
     case "heading":
       return `<mj-column><mj-text font-size="${block.size || 26}px" font-weight="700" color="${textColor}" padding="16px 24px 0">${escapeHtml(block.text)}</mj-text></mj-column>`;
     case "paragraph":
       return `<mj-column><mj-text font-size="15px" line-height="1.6" color="${textColor}" padding="8px 24px">${escapeHtml(block.text)}</mj-text></mj-column>`;
     case "button":
-      return `<mj-column><mj-button background-color="${accent}" href="${escapeHtml(block.href)}" padding="20px 24px">${escapeHtml(block.label)}</mj-button></mj-column>`;
+      return `<mj-column><mj-button background-color="${accent}" href="${escapeHtml(block.href)}" target="_blank" padding="20px 24px">${escapeHtml(block.label)}</mj-button></mj-column>`;
     case "divider":
       return `<mj-column><mj-divider border-color="${accent}" padding="16px 24px" /></mj-column>`;
     case "spacer":
@@ -95,7 +95,7 @@ function renderBlockHtml(
     case "image": {
       const img = `<img src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt || "")}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;" />`;
       return cell(
-        block.href ? `<a href="${escapeHtml(block.href)}">${img}</a>` : img,
+        block.href ? `<a href="${escapeHtml(block.href)}" target="_blank" rel="noopener noreferrer">${img}</a>` : img,
         "0",
       );
     }
@@ -110,7 +110,7 @@ function renderBlockHtml(
       );
     case "button":
       return cell(
-        `<a href="${escapeHtml(block.href)}" style="display:inline-block;padding:12px 22px;border-radius:6px;background:${accent};color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;">${escapeHtml(block.label)}</a>`,
+        `<a href="${escapeHtml(block.href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 22px;border-radius:6px;background:${accent};color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;">${escapeHtml(block.label)}</a>`,
         "20px 24px",
       );
     case "divider":
@@ -128,6 +128,8 @@ export function compileCampaignHtml(config: EmailCampaignConfig): {
   html: string;
   errors: string[];
 } {
+  const errors = validateCampaignConfig(config);
+  if (errors.length) return { html: "", errors };
   const rows = config.blocks
     .map((block) => renderBlockHtml(block, config.accent, config.textColor))
     .join("\n");
@@ -151,4 +153,37 @@ ${rows}
 </body>
 </html>`;
   return { html, errors: [] };
+}
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const WEB_URL = /^https?:\/\//i;
+const IMAGE_SOURCE = /^(https?:\/\/|data:image\/(png|jpeg|webp|gif);base64,)/i;
+
+export function validateCampaignConfig(config: EmailCampaignConfig): string[] {
+  const errors: string[] = [];
+  if (!config || typeof config !== "object") return ["Campaign configuration is missing."];
+  if (!config.brandName?.trim()) errors.push("Brand name is required.");
+  if (!HEX_COLOR.test(config.accent)) errors.push("Accent colour is invalid.");
+  if (!HEX_COLOR.test(config.backgroundColor)) errors.push("Background colour is invalid.");
+  if (!HEX_COLOR.test(config.textColor)) errors.push("Text colour is invalid.");
+  if (!Array.isArray(config.blocks) || !config.blocks.length)
+    errors.push("Add at least one content block.");
+  if (config.blocks?.length > 40) errors.push("Emails are limited to 40 blocks.");
+  config.blocks?.forEach((block, index) => {
+    const label = `Block ${index + 1}`;
+    if ((block.type === "heading" || block.type === "paragraph") && !block.text.trim())
+      errors.push(`${label} needs text.`);
+    if (block.type === "heading" && block.size !== undefined && (block.size < 16 || block.size > 64))
+      errors.push(`${label} heading size must be between 16 and 64.`);
+    if (block.type === "image" && !IMAGE_SOURCE.test(block.src))
+      errors.push(`${label} needs an uploaded image or a public image URL.`);
+    if (block.type === "image" && block.href && !WEB_URL.test(block.href))
+      errors.push(`${label} image link must start with http:// or https://.`);
+    if (block.type === "button" && !block.label.trim()) errors.push(`${label} needs a button label.`);
+    if (block.type === "button" && !WEB_URL.test(block.href))
+      errors.push(`${label} button link must start with http:// or https://.`);
+    if (block.type === "spacer" && block.height !== undefined && (block.height < 4 || block.height > 160))
+      errors.push(`${label} spacer must be between 4 and 160 pixels.`);
+  });
+  return errors;
 }

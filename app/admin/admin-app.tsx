@@ -146,9 +146,9 @@ export function AdminApp() {
     }
   }, []);
 
-  // The initial catalogue load intentionally owns the page-level loading state.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    // The initial catalogue request owns the page-level loading state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
@@ -339,7 +339,7 @@ export function AdminApp() {
           >
             Email
           </button>
-          <span className="dev-warning">Local testing only · no login</span>
+          <span className="dev-warning">Protected admin workspace</span>
           <Link href="/create">Open creator ↗</Link>
         </div>
       </header>

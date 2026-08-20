@@ -20,7 +20,7 @@ export async function PATCH(
       name?: string;
       subject?: string;
       preheader?: string;
-      status?: "draft" | "scheduled" | "sending" | "sent" | "archived";
+      status?: "draft" | "published" | "scheduled" | "sending" | "sent" | "archived";
       config?: EmailCampaignConfig;
     };
     const updates: Partial<typeof emailCampaigns.$inferInsert> = {
@@ -33,7 +33,7 @@ export async function PATCH(
     if (payload.status) updates.status = payload.status;
     if (payload.config) {
       const { html, errors } = compileCampaignHtml(payload.config);
-      if (errors.length) return apiError(`MJML compile error: ${errors[0]}`);
+      if (errors.length) return apiError(`Email validation error: ${errors[0]}`);
       updates.configJson = JSON.stringify(payload.config);
       updates.htmlCache = html;
     }

@@ -17,7 +17,7 @@ export function Showcase() {
   return <main className="showcase">
     <header className="showcase-nav">
       <Link className="showcase-brand" href="/" aria-label="MotionMint home">Motion<span>Mint</span><i /></Link>
-      <nav aria-label="Main navigation"><a href="#possibilities">Possibilities</a><a href="#how">How it works</a><a href="#work">Showcase</a></nav>
+      <nav aria-label="Main navigation"><a href="#possibilities">Possibilities</a><Link href="/email">Email templates</Link><a href="#work">Showcase</a></nav>
       <div className="showcase-nav-actions"><Link className="showcase-auth-link" href={session ? "/account" : "/login"}>{session ? "Account" : "Sign in"}</Link><Link className="showcase-nav-cta" href="/create">Open studio <Arrow /></Link></div>
     </header>
 
@@ -71,6 +71,6 @@ export function Showcase() {
 
     <section className="showcase-everyone"><p className="showcase-section-number">04 / FOR EVERY STORY</p><h2>No fixed niche.<br /><em>Your message leads.</em></h2><div className="category-cloud">{categories.map((category, index) => <Link href="/create" key={category}><span>0{index + 1}</span>{category}<Arrow /></Link>)}</div></section>
     <section className="showcase-final"><div className="final-sun"><i /><i /><i /></div><p>YOUR NEXT IDEA DESERVES MOTION</p><h2>Make something<br /><em>worth watching.</em></h2><Link href="/create">Enter the studio <Arrow /></Link></section>
-    <footer className="showcase-footer"><Link className="showcase-brand inverse" href="/">Motion<span>Mint</span><i /></Link><p>Animated content for every message, screen and moment.</p><div><Link href="/create">Creator</Link><a href="#possibilities">Formats</a></div><small>© {new Date().getFullYear()} MotionMint · Built to move</small></footer>
+    <footer className="showcase-footer"><Link className="showcase-brand inverse" href="/">Motion<span>Mint</span><i /></Link><p>Animated content for every message, screen and moment.</p><div><Link href="/create">Motion creator</Link><Link href="/email">Email templates</Link></div><small>© {new Date().getFullYear()} MotionMint · Built to move</small></footer>
   </main>;
 }

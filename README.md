@@ -99,6 +99,8 @@ project JSON + private media
         -> private download
 ```
 
+An initial containerised FFmpeg service now lives in `services/webm-to-mp4`. It accepts a private raw WebM upload at `POST /convert` and returns a browser-compatible H.264/AAC MP4 without permanently retaining customer media. See its README for Docker Compose instructions and production security requirements. It performs conversion only; deterministic composition capture still belongs to the future render worker.
+
 ### Admin template studio
 
 The protected admin area is at `/admin`.
@@ -115,6 +117,29 @@ The protected admin area is at `/admin`.
 - Three distinct generated concepts per request, varying composition, typography, geometry, motion, palette, copy, and scenes.
 
 The AI model is configurable with `OPENAI_MODEL`.
+
+### Email Studio
+
+The admin Email Studio provides a visual, block-based campaign workflow alongside the motion-template catalogue.
+
+- Create and save campaigns with a subject line, preheader, brand styling, and footer copy.
+- Add heading, paragraph, image, button, divider, and spacer blocks.
+- Reorder, duplicate, edit, and remove blocks.
+- Configure heading size, image alt text/link, button destination, and spacer height.
+- Preview the email live at desktop and mobile widths.
+- Inspect and copy the portable MJML source or generated email-safe HTML.
+- Download `.mjml` and `.html` files locally.
+- Validate required copy, colours, public image URLs, links, and block limits before saving/exporting.
+- Generate three original campaign drafts through the admin-only OpenAI integration, with a local fallback.
+- Queue recipients in D1 for future provider delivery without sending files or messages externally during editing.
+- Publish approved email designs from the admin workspace to the customer template catalogue.
+- Browse published templates at `/email`; drafts and archived designs remain admin-only.
+- Select “Use this template” to open a private customer copy at `/email/create/[id]`.
+- Autosave customer email edits locally without modifying the administrator's source template.
+- Upload PNG, JPG, WebP, or GIF images directly into customer email drafts for local preview/export, with hosted delivery URLs remaining available.
+- Browse saved MotionMint banner projects from the customer email editor and insert a responsive, clickable, email-safe snapshot. Animated GIF upload provides inbox-compatible motion; automatic banner-to-GIF rendering remains a production-renderer task.
+
+MJML is maintained as the portable source representation. Because the Cloudflare Worker runtime is incompatible with the current Node-oriented MJML compiler bundle, the MVP generates equivalent responsive, inline-styled table HTML directly for previews and delivery caching. A future delivery worker may run the official MJML compiler in a compatible Node rendering environment.
 
 ## Authentication
 
@@ -203,6 +228,8 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/create` | Creator/editor |
 | `/login` | Customer login/registration |
 | `/account` | Account/session |
+| `/email` | Published customer email-template gallery |
+| `/email/create/[id]` | Customer email editor |
 | `/admin/setup` | First local administrator |
 | `/admin/login` | Administrator login |
 | `/admin` | Protected template studio |
