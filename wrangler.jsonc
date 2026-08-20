@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "motionmint",
+  "account_id": "ea10bde53a63a7d7259bb8fa77521fde",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./worker/index.ts",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "BETTER_AUTH_URL": "https://motionmint.motionmint-ndali.workers.dev",
+    "OPENAI_MODEL": "gpt-5.6-luna"
+  },
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "none",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "motionmint-production",
+      "database_id": "bf4dd7b9-00db-432c-903f-8f735d352655",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

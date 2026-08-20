@@ -16,7 +16,7 @@ export function Showcase() {
   const { data: session } = authClient.useSession();
   return <main className="showcase">
     <header className="showcase-nav">
-      <Link className="showcase-brand" href="/" aria-label="MotionMint home">Motion<span>Mint</span><i /></Link>
+      <Link className="showcase-brand" href="/" aria-label="Turnbine home">Turnbine<i /></Link>
       <nav aria-label="Main navigation"><a href="#possibilities">Possibilities</a><Link href="/email">Email templates</Link><a href="#work">Showcase</a></nav>
       <div className="showcase-nav-actions"><Link className="showcase-auth-link" href={session ? "/account" : "/login"}>{session ? "Account" : "Sign in"}</Link><Link className="showcase-nav-cta" href="/create">Open studio <Arrow /></Link></div>
     </header>
@@ -29,7 +29,7 @@ export function Showcase() {
         <div className="showcase-actions"><Link className="showcase-primary" href="/create">Start creating <Arrow /></Link><a className="showcase-secondary" href="#work">See what moves <span>↓</span></a></div>
         <div className="showcase-trust"><span>One idea</span><i /><span>Every ratio</span><i /><span>Your media</span><i /><span>Your motion</span></div>
       </div>
-      <Link href="/create" className="showcase-stage" aria-label="Open the MotionMint banner studio">
+      <Link href="/create" className="showcase-stage" aria-label="Open the Turnbine banner studio">
         <div className="stage-orbit orbit-one" /><div className="stage-orbit orbit-two" />
         <div className="stage-card stage-story"><small>NEW COLLECTION · 01</small><strong>Move<br />different.</strong><span>Designed for the moment ↗</span><i className="stage-sphere" /></div>
         <div className="stage-card stage-square"><small>WEEKLY NOTE</small><strong>Make space<br />for good things.</strong><span>02 / 04</span></div>
@@ -42,7 +42,7 @@ export function Showcase() {
 
     <section className="showcase-intro" id="possibilities">
       <p className="showcase-section-number">01 / POSSIBILITIES</p>
-      <div><h2>One studio.<br /><em>More than video.</em></h2><p>MotionMint separates your words, media, visual style and animation. That means one project can become a social post, a website banner, an event screen or a downloadable video—without rebuilding the idea every time.</p></div>
+      <div><h2>One studio.<br /><em>More than video.</em></h2><p>Turnbine separates your words, media, visual style and animation. That means one project can become a social post, a website banner, an event screen or a downloadable video—without rebuilding the idea every time.</p></div>
     </section>
 
     <section className="format-grid">
@@ -60,7 +60,7 @@ export function Showcase() {
     </section>
 
     <section className="showcase-how" id="how">
-      <div className="how-copy"><p className="showcase-section-number">03 / HOW IT WORKS</p><h2>From blank screen<br />to <em>brilliant scene.</em></h2><p>Start with a template or your own direction. MotionMint keeps the powerful parts close, without making creativity feel technical.</p><Link className="showcase-primary light" href="/create">Make your first project <Arrow /></Link></div>
+      <div className="how-copy"><p className="showcase-section-number">03 / HOW IT WORKS</p><h2>From blank screen<br />to <em>brilliant scene.</em></h2><p>Start with a template or your own direction. Turnbine keeps the powerful parts close, without making creativity feel technical.</p><Link className="showcase-primary light" href="/create">Make your first project <Arrow /></Link></div>
       <ol className="how-list">
         <li><span>01</span><div><h3>Choose your canvas</h3><p>Social, display, widescreen or a custom use case.</p></div><i>↗</i></li>
         <li><span>02</span><div><h3>Make it yours</h3><p>Add scenes, words, languages, media, sound and branding.</p></div><i>↗</i></li>
@@ -71,6 +71,6 @@ export function Showcase() {
 
     <section className="showcase-everyone"><p className="showcase-section-number">04 / FOR EVERY STORY</p><h2>No fixed niche.<br /><em>Your message leads.</em></h2><div className="category-cloud">{categories.map((category, index) => <Link href="/create" key={category}><span>0{index + 1}</span>{category}<Arrow /></Link>)}</div></section>
     <section className="showcase-final"><div className="final-sun"><i /><i /><i /></div><p>YOUR NEXT IDEA DESERVES MOTION</p><h2>Make something<br /><em>worth watching.</em></h2><Link href="/create">Enter the studio <Arrow /></Link></section>
-    <footer className="showcase-footer"><Link className="showcase-brand inverse" href="/">Motion<span>Mint</span><i /></Link><p>Animated content for every message, screen and moment.</p><div><Link href="/create">Motion creator</Link><Link href="/email">Email templates</Link></div><small>© {new Date().getFullYear()} MotionMint · Built to move</small></footer>
+    <footer className="showcase-footer"><Link className="showcase-brand inverse" href="/">Turnbine<i /></Link><p>Animated content for every message, screen and moment.</p><div><Link href="/create">Motion creator</Link><Link href="/email">Email templates</Link></div><small>© {new Date().getFullYear()} Turnbine · Built to move</small></footer>
   </main>;
 }

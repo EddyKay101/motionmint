@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { EmailCreator } from "./email-creator";
 
 export const metadata: Metadata = {
-  title: "Create email · MotionMint",
-  description: "Customise a responsive MotionMint email template.",
+  title: "Create email · Turnbine",
+  description: "Customise a responsive Turnbine email template.",
 };
 
 export default async function EmailCreatorPage({ params }: { params: Promise<{ id: string }> }) {

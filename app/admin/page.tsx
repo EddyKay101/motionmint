@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { getAuth } from "../../lib/auth";
 
 export const metadata: Metadata = {
-  title: "Template Admin · MotionMint",
-  description: "Local template catalogue administration for MotionMint.",
+  title: "Template Admin · Turnbine",
+  description: "Local template catalogue administration for Turnbine.",
 };
 
 export const dynamic = "force-dynamic";

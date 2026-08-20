@@ -17,7 +17,7 @@ const bodyFont = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MotionMint",
+  title: "Turnbine",
   description: "A mobile studio for animated social banners and lyric videos.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/favicon.svg", apple: "/favicon.svg" },

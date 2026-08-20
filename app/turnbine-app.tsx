@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable jsx-a11y/media-has-caption -- soundtrack previews are user-supplied audio, not authored video content */
 
 import {
   useCallback,
@@ -382,24 +383,28 @@ const ratioForSize = (width: number, height: number): Ratio => {
   const value = width / height;
   return value < 0.8 ? "9:16" : value > 1.35 ? "16:9" : "1:1";
 };
-const storageKey = "motionmint.project.v1";
-const ownerStorageKey = "motionmint.owner.v1";
+const storageKey = "turnbine.project.v1";
+const ownerStorageKey = "turnbine.owner.v1";
+const legacyStorageKey = "motionmint.project.v1";
+const legacyOwnerStorageKey = "motionmint.owner.v1";
 const getOwnerKey = () => {
-  let key = localStorage.getItem(ownerStorageKey);
+  let key = localStorage.getItem(ownerStorageKey) || localStorage.getItem(legacyOwnerStorageKey);
   if (!key) {
     key =
       crypto.randomUUID().replaceAll("-", "") +
       crypto.randomUUID().replaceAll("-", "");
-    localStorage.setItem(ownerStorageKey, key);
   }
+  localStorage.setItem(ownerStorageKey, key);
   return key;
 };
 const restoreProject = () => {
   if (typeof window !== "undefined") {
-    const raw = localStorage.getItem(storageKey);
+    const raw = localStorage.getItem(storageKey) || localStorage.getItem(legacyStorageKey);
     if (raw) {
       try {
-        return JSON.parse(raw) as Project;
+        const project = JSON.parse(raw) as Project;
+        localStorage.setItem(storageKey, raw);
+        return project;
       } catch {
         /* use a clean project */
       }
@@ -503,7 +508,7 @@ const safeFileName = (value: string) =>
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "") || "motionmint-export";
+    .replace(/^-|-$/g, "") || "turnbine-export";
 const webExportFormats = [
   "HTML5 ZIP",
   "Standalone HTML",
@@ -600,7 +605,7 @@ const makeProject = (template: Template): Project => ({
   updatedAt: new Date().toISOString(),
 });
 
-export function MotionMintApp() {
+export function TurnbineApp() {
   const { data: authSession } = authClient.useSession();
   const [view, setView] = useState<"gallery" | "editor">("gallery");
   const [filter, setFilter] = useState("All");
@@ -651,7 +656,7 @@ export function MotionMintApp() {
           method: "PUT",
           headers: {
             "content-type": "application/json",
-            "x-motionmint-owner": getOwnerKey(),
+            "x-turnbine-owner": getOwnerKey(),
           },
           body: JSON.stringify(project),
         });
@@ -852,7 +857,7 @@ export function MotionMintApp() {
             height: activeSize.height,
             clickTag: project.output?.clickThroughUrl || "",
             duration: totalDuration,
-            generatedBy: "MotionMint",
+            generatedBy: "Turnbine",
           },
           null,
           2,
@@ -861,7 +866,7 @@ export function MotionMintApp() {
       zip.file("project.json", JSON.stringify(project, null, 2));
       zip.file(
         "README.txt",
-        "MotionMint HTML5 banner\n\nOpen index.html in a browser or upload the ZIP to a compatible HTML5 advertising platform. Uploaded customer media is embedded privately inside index.html. The click-through destination is exposed as window.clickTag.\n",
+        "Turnbine HTML5 banner\n\nOpen index.html in a browser or upload the ZIP to a compatible HTML5 advertising platform. Uploaded customer media is embedded privately inside index.html. The click-through destination is exposed as window.clickTag.\n",
       );
       downloadBlob = await zip.generateAsync({
         type: "blob",
@@ -931,7 +936,7 @@ export function MotionMintApp() {
     );
     zip.file(
       "README.txt",
-      "MotionMint reusable template package. Import template.json into a compatible MotionMint installation. Customer media is intentionally excluded from reusable templates.\n",
+      "Turnbine reusable template package. Import template.json into a compatible Turnbine installation. Customer media is intentionally excluded from reusable templates.\n",
     );
     const blob = await zip.generateAsync({
       type: "blob",
@@ -981,7 +986,7 @@ export function MotionMintApp() {
         method: "PUT",
         headers: {
           "content-type": "application/json",
-          "x-motionmint-owner": getOwnerKey(),
+          "x-turnbine-owner": getOwnerKey(),
         },
         body: JSON.stringify(project),
       });
@@ -989,7 +994,7 @@ export function MotionMintApp() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-motionmint-owner": getOwnerKey(),
+          "x-turnbine-owner": getOwnerKey(),
         },
         body: JSON.stringify({
           projectId: project.id,
@@ -1014,8 +1019,8 @@ export function MotionMintApp() {
     return (
       <main className="shell gallery">
         <header className="topbar">
-          <Link className="brand" href="/" aria-label="MotionMint home">
-            Motion<span>Mint</span>
+          <Link className="brand" href="/" aria-label="Turnbine home">
+            Turnbine
           </Link>
           <div className="header-actions">
             <span className="local-pill">
@@ -2537,8 +2542,6 @@ export function MotionMintApp() {
               </button>
             </div>
           </details>
-          {/* Uploaded soundtrack preview is audio-only, so no caption track exists. */}
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           {audioUrl && activeProfile.audio && (
             <audio className="audio" controls src={audioUrl} />
           )}

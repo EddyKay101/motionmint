@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { MotionMintApp } from "../motion-mint-app";
+import { CreatorClient } from "./creator-client";
 
 export const metadata: Metadata = {
-  title: "Create · MotionMint",
+  title: "Create · Turnbine",
   description: "Create animated banners, social campaigns and lyric videos.",
 };
 
 export default function CreatePage() {
-  return <MotionMintApp />;
+  return <CreatorClient />;
 }

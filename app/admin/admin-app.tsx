@@ -320,7 +320,7 @@ export function AdminApp() {
       <header className="admin-topbar">
         <div>
           <span className="brand">
-            Motion<span>Mint</span>
+            Turnbine
           </span>
           <span className="admin-label">Template Admin</span>
         </div>

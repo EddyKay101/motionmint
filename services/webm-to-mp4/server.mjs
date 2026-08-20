@@ -36,7 +36,7 @@ function json(response, status, body) {
 
 function safeBaseName(value) {
   const decoded = (() => { try { return decodeURIComponent(value || ""); } catch { return value || ""; } })();
-  return decoded.replace(/\.[^.]+$/, "").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "motionmint-video";
+  return decoded.replace(/\.[^.]+$/, "").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "turnbine-video";
 }
 
 async function runFfmpeg(input, output) {
@@ -65,7 +65,7 @@ async function runFfmpeg(input, output) {
 const server = createServer(async (request, response) => {
   if (request.method === "OPTIONS") { response.writeHead(204, headers()); response.end(); return; }
   if (request.method === "GET" && request.url === "/health") {
-    json(response, 200, { status: "ok", service: "motionmint-webm-to-mp4", activeConversions }); return;
+    json(response, 200, { status: "ok", service: "turnbine-webm-to-mp4", activeConversions }); return;
   }
   if (request.method !== "POST" || request.url !== "/convert") {
     json(response, 404, { error: "Use POST /convert with a raw video/webm request body." }); return;
@@ -77,7 +77,7 @@ const server = createServer(async (request, response) => {
   if (declaredSize > maxUploadBytes) { json(response, 413, { error: "WebM upload exceeds the configured size limit." }); return; }
   if (activeConversions >= maxConcurrent) { json(response, 429, { error: "Converter is busy. Try again shortly." }); return; }
 
-  const directory = await mkdtemp(join(tmpdir(), "motionmint-convert-"));
+  const directory = await mkdtemp(join(tmpdir(), "turnbine-convert-"));
   const input = join(directory, "input.webm");
   const output = join(directory, "output.mp4");
   let received = 0;
@@ -114,4 +114,4 @@ const server = createServer(async (request, response) => {
 });
 
 server.requestTimeout = timeoutMs + 30_000;
-server.listen(port, "0.0.0.0", () => console.log(`MotionMint converter listening on :${port}`));
+server.listen(port, "0.0.0.0", () => console.log(`Turnbine converter listening on :${port}`));

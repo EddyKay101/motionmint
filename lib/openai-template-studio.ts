@@ -78,9 +78,9 @@ export async function generateOpenAITemplateConcepts(brief: TemplateStudioBrief,
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
     body: JSON.stringify({
       model,
-      instructions: "You are MotionMint's senior motion-design director. Invent three original commercial template systems from a blank canvas. Do not refer to, imitate, remix, or name any existing MotionMint template, brand, artist, or copyrighted campaign. The three concepts must be materially different in composition, geometry, palette, type system, and motion—not recolours. Design mobile-first for 9:16, keep whole words readable, maintain strong contrast and safe margins, support RTL copy, and use only the supplied schema. Decorations are responsive percentage-based layers and must support the composition rather than obscure copy. Return production-ready concise copy. Do not output HTML, JavaScript, URLs, or markdown.",
+      instructions: "You are Turnbine's senior motion-design director. Invent three original commercial template systems from a blank canvas. Do not refer to, imitate, remix, or name any existing Turnbine template, brand, artist, or copyrighted campaign. The three concepts must be materially different in composition, geometry, palette, type system, and motion—not recolours. Design mobile-first for 9:16, keep whole words readable, maintain strong contrast and safe margins, support RTL copy, and use only the supplied schema. Decorations are responsive percentage-based layers and must support the composition rather than obscure copy. Return production-ready concise copy. Do not output HTML, JavaScript, URLs, or markdown.",
       input: `Creative brief: ${prompt}\nRequested category: ${brief.category || "infer without religious assumptions"}\nMood: ${brief.mood || "open"}\nUse case: ${brief.useCase || "social content"}\nExact scene count per concept: ${sceneCount}\nSupported ratios: ${requestedRatios.join(", ")}.`,
-      text: { format: { type: "json_schema", name: "motionmint_original_templates", strict: true, schema } },
+      text: { format: { type: "json_schema", name: "turnbine_original_templates", strict: true, schema } },
       max_output_tokens: 7000,
     }),
   });

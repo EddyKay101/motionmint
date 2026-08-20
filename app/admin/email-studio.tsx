@@ -22,12 +22,12 @@ type CampaignRecord = {
 };
 
 const blankConfig = (): EmailCampaignConfig => ({
-  brandName: "MotionMint",
+  brandName: "Turnbine",
   accent: "#6d5bff",
   backgroundColor: "#f7f5fb",
   textColor: "#14121d",
   footerText:
-    "You're receiving this email because you created a MotionMint account.",
+    "You're receiving this email because you created a Turnbine account.",
   blocks: [
     { type: "heading", text: "Your next campaign starts here" },
     {
@@ -37,7 +37,7 @@ const blankConfig = (): EmailCampaignConfig => ({
     {
       type: "button",
       label: "Open the studio",
-      href: "https://motionmint.app/create",
+      href: "https://turnbine.app/create",
     },
   ],
 });
@@ -80,7 +80,7 @@ const downloadText = (filename: string, value: string, type: string) => {
 };
 
 const fileSlug = (value: string) =>
-  value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "motionmint-email";
+  value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "turnbine-email";
 
 export function EmailStudio() {
   const [items, setItems] = useState<CampaignRecord[]>([]);

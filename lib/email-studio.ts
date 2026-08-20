@@ -100,12 +100,12 @@ function buildConcept(
     { type: "button", label: "Take a look", href: "https://example.com" },
   ];
   const config: EmailCampaignConfig = {
-    brandName: "MotionMint",
+    brandName: "Turnbine",
     accent,
     backgroundColor: "#f7f5fb",
     textColor: "#14121d",
     footerText:
-      "You're receiving this email because you opted in to MotionMint updates.",
+      "You're receiving this email because you opted in to Turnbine updates.",
     blocks,
   };
   return {

@@ -1,6 +1,6 @@
-# MotionMint
+# Turnbine
 
-MotionMint is a mobile-first PWA for creating animated social-media banners, lyric videos, HTML5 adverts, event graphics, website heroes, broadcast overlays, and other motion-led visual content.
+Turnbine is a mobile-first PWA for creating animated social-media banners, lyric videos, HTML5 adverts, event graphics, website heroes, broadcast overlays, and other motion-led visual content.
 
 This repository is a working MVP and product prototype. It turns ideas explored in the earlier `banner-creation` and `afro-nasheed` prototypes into a reusable, JSON-driven editor instead of separate hard-coded banners.
 
@@ -24,7 +24,7 @@ This repository is a working MVP and product prototype. It turns ideas explored 
 - Responsive product hero, banner examples, use cases, workflow, and calls to action.
 - Creator at `/create`.
 - Installable manifest and service worker.
-- Public/creator MotionMint logos link home; the admin logo deliberately does not.
+- Public/creator Turnbine logos link home; the admin logo deliberately does not.
 
 ### Creator
 
@@ -137,7 +137,7 @@ The admin Email Studio provides a visual, block-based campaign workflow alongsid
 - Select “Use this template” to open a private customer copy at `/email/create/[id]`.
 - Autosave customer email edits locally without modifying the administrator's source template.
 - Upload PNG, JPG, WebP, or GIF images directly into customer email drafts for local preview/export, with hosted delivery URLs remaining available.
-- Browse saved MotionMint banner projects from the customer email editor and insert a responsive, clickable, email-safe snapshot. Animated GIF upload provides inbox-compatible motion; automatic banner-to-GIF rendering remains a production-renderer task.
+- Browse saved Turnbine banner projects from the customer email editor and insert a responsive, clickable, email-safe snapshot. Animated GIF upload provides inbox-compatible motion; automatic banner-to-GIF rendering remains a production-renderer task.
 
 MJML is maintained as the portable source representation. Because the Cloudflare Worker runtime is incompatible with the current Node-oriented MJML compiler bundle, the MVP generates equivalent responsive, inline-styled table HTML directly for previews and delivery caching. A future delivery worker may run the official MJML compiler in a compatible Node rendering environment.
 
@@ -215,7 +215,7 @@ public/
 Requirements: Node.js `>=22.13.0` and npm.
 
 ```bash
-cd ~/Documents/projects/motionmint
+cd ~/Documents/projects/turnbine
 npm install
 npm run dev
 ```
@@ -254,7 +254,7 @@ GOOGLE_CLIENT_ID=your_google_oauth_client_id
 GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
 
 # Protects first-admin setup outside local development
-MOTIONMINT_ADMIN_SETUP_KEY=generate_a_separate_random_setup_key
+TURNBINE_ADMIN_SETUP_KEY=generate_a_separate_random_setup_key
 
 # Admin-only AI template generation
 OPENAI_API_KEY=your_openai_api_key
@@ -274,8 +274,8 @@ Google OAuth development configuration:
 
 Production equivalents:
 
-- Origin: `https://motionmint.com`
-- Redirect: `https://motionmint.com/api/auth/callback/google`
+- Origin: `https://turnbine.com`
+- Redirect: `https://turnbine.com/api/auth/callback/google`
 
 The server refuses to use the development fallback auth secret in production.
 
@@ -352,14 +352,14 @@ The next architectural cleanup should move the `Project` types currently colocat
 
 ## Earlier prototypes
 
-`~/Desktop/banner-creation` and `~/Desktop/afro-nasheed` were reference prototypes for GSAP animation, bilingual/RTL layouts, underlays, audio, timing, browser recording/conversion concepts, cinematic templates, vertical banners, and landscape lyric videos. MotionMint lives separately at `~/Documents/projects/motionmint`; preserve those prototypes unless a future task explicitly requires a reviewed change.
+`~/Desktop/banner-creation` and `~/Desktop/afro-nasheed` were reference prototypes for GSAP animation, bilingual/RTL layouts, underlays, audio, timing, browser recording/conversion concepts, cinematic templates, vertical banners, and landscape lyric videos. Turnbine lives separately at `~/Documents/projects/turnbine`; preserve those prototypes unless a future task explicitly requires a reviewed change.
 
 ## Commercial direction
 
-MotionMint is broader than a video-template tool. Its output-profile model creates a path toward social content, HTML5 advertising, website motion, signage, OBS graphics, events, music visualisers, invitations, campaigns, and reusable brand templates from one composition system.
+Turnbine is broader than a video-template tool. Its output-profile model creates a path toward social content, HTML5 advertising, website motion, signage, OBS graphics, events, music visualisers, invitations, campaigns, and reusable brand templates from one composition system.
 
 Its clearest differentiation is the combination of mobile-first professional motion creation, responsive reusable templates, bilingual/RTL support, web and video outputs from one project, admin-controlled original template generation, GSAP/Three.js/masks/Lottie, and a future deterministic commercial rendering pipeline.
 
 ---
 
-MotionMint is a working product foundation, not yet a production service. Preserve local data and prototypes, keep secrets private, and use the roadmap above as the handover point for the next development session.
+Turnbine is a working product foundation, not yet a production service. Preserve local data and prototypes, keep secrets private, and use the roadmap above as the handover point for the next development session.

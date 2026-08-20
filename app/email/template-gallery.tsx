@@ -29,7 +29,7 @@ export function EmailTemplateGallery() {
   return (
     <main className="email-gallery-page">
       <header className="email-public-nav">
-        <Link className="showcase-brand" href="/">Motion<span>Mint</span><i /></Link>
+        <Link className="showcase-brand" href="/">Turnbine<i /></Link>
         <nav><Link href="/create">Motion templates</Link><Link className="active" href="/email">Email templates</Link></nav>
         <Link className="email-nav-cta" href="/account">My account</Link>
       </header>

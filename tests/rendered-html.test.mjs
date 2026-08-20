@@ -13,12 +13,12 @@ async function render(path = "/") {
   );
 }
 
-test("server-renders the MotionMint product homepage", async () => {
+test("server-renders the Turnbine product homepage", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /<title>MotionMint/i);
+  assert.match(html, /<title>Turnbine/i);
   assert.match(html, /make your message move/i);
   assert.match(html, /Create|Start creating/i);
   assert.doesNotMatch(html, /Your site is taking shape|codex-preview/i);

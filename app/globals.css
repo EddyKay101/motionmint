@@ -1,26 +1,27 @@
 @import "tailwindcss";
 :root {
-  --ink: #14121d;
-  --paper: #f7f5fb;
-  --line: #e3ddef;
+  --ink: #101828;
+  --paper: #ffffff;
+  --line: #e6eaf0;
   --surface: #ffffff;
-  --mint: #2fe6ac;
-  --iris: #6d5bff;
-  --iris-deep: #4b39c7;
-  --coral: #ff6b6a;
-  --muted: #6b6780;
+  --mint: #36d9c4;
+  --iris: #3157f6;
+  --iris-deep: #1739c7;
+  --coral: #ff6846;
+  --muted: #667085;
   --gradient-hero: linear-gradient(
     125deg,
-    #6d5bff 0%,
-    #9a5bff 45%,
-    #2fe6ac 100%
+    #3157f6 0%,
+    #6080ff 48%,
+    #36d9c4 100%
   );
-  --gradient-button: linear-gradient(120deg, #6d5bff, #4b39c7);
-  --shadow-soft: 0 18px 44px -12px rgba(30, 20, 60, 0.18);
-  --shadow-lift: 0 26px 60px -16px rgba(30, 20, 60, 0.28);
+  --gradient-button: linear-gradient(120deg, #3157f6, #1739c7);
+  --shadow-soft: 0 18px 44px -12px rgba(24, 47, 99, 0.12);
+  --shadow-lift: 0 26px 60px -16px rgba(24, 47, 99, 0.2);
   --font-display: var(--font-display, "Space Grotesk", Georgia, serif);
   --font-body: var(--font-body, Arial, Helvetica, sans-serif);
 }
+
 * {
   box-sizing: border-box;
 }
@@ -2851,7 +2852,7 @@ summary {
   z-index: 2;
 }
 
-/* MotionMint public showcase */
+/* Turnbine public showcase */
 .showcase {
   --lime: #2fe6ac;
   --ink: #14121d;
@@ -4919,10 +4920,10 @@ summary {
 .email-image-delivery-note { color: #777181; font-size: 9px; line-height: 1.45; }
 .email-user-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 13px; border: 1px dashed #aaa5bd; border-radius: 9px; padding: 11px; }
 .email-user-add span { flex-basis: 100%; color: #6e6978; font-size: 9px; font-weight: 850; text-transform: uppercase; }
-.email-motionmint-insert { display: grid; gap: 12px; margin-top: 14px; border: 1px solid #cfc7ff; border-radius: 12px; padding: 15px; background: linear-gradient(135deg, #f3f0ff, #fbffe9); }
-.email-motionmint-insert > div:first-child b { color: #171522; font-size: 13px; }
-.email-motionmint-insert > div:first-child p { margin: 5px 0 0; color: #6e6978; font-size: 10px; line-height: 1.45; }
-.email-motionmint-insert > button { width: fit-content; border: 0; border-radius: 8px; padding: 10px 13px; color: white; background: #171522; font-size: 10px; font-weight: 850; }
+.email-turnbine-insert { display: grid; gap: 12px; margin-top: 14px; border: 1px solid #cfc7ff; border-radius: 12px; padding: 15px; background: linear-gradient(135deg, #f3f0ff, #fbffe9); }
+.email-turnbine-insert > div:first-child b { color: #171522; font-size: 13px; }
+.email-turnbine-insert > div:first-child p { margin: 5px 0 0; color: #6e6978; font-size: 10px; line-height: 1.45; }
+.email-turnbine-insert > button { width: fit-content; border: 0; border-radius: 8px; padding: 10px 13px; color: white; background: #171522; font-size: 10px; font-weight: 850; }
 .email-creative-picker { display: grid; gap: 12px; border-top: 1px solid #dcd5ff; padding-top: 12px; }
 .email-creative-picker > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .email-creative-picker > div > button { display: grid; gap: 6px; min-width: 0; border: 1px solid #ded9e9; border-radius: 9px; padding: 8px; color: #171522; background: white; text-align: left; }
@@ -4970,3 +4971,55 @@ summary {
   .email-creator-colours { grid-template-columns: 1fr; }
   .email-user-block > header { align-items: flex-start; }
 }
+
+/* Final Turnbine theme layer: deliberately last so legacy component colours cannot win. */
+.brand, .showcase-brand, .auth-brand { display: inline-flex; align-items: center; gap: 9px; color: #101828; font-weight: 850; letter-spacing: -.055em; }
+.showcase-brand i, .auth-brand > i, .brand::after { content: ""; flex: 0 0 auto; width: 22px; height: 22px; margin: 0; border: 0; border-radius: 50%; background: conic-gradient(from 18deg, #3157f6 0 26%, transparent 26% 35%, #36d9c4 35% 61%, transparent 61% 70%, #ff6846 70% 96%, transparent 96%); box-shadow: inset 0 0 0 5px #fff, 0 0 0 1px #dfe5ee; animation: turnbine-mark 10s linear infinite; }
+.showcase { --lime: #3157f6; --ink: #101828; --cream: #fff; --violet: #3157f6; color: #101828; background: #fff; }
+.showcase-nav { color: #101828; border-bottom: 1px solid #e8ecf2; background: rgba(255,255,255,.92); backdrop-filter: blur(18px); }
+.showcase-nav nav a:hover, .work-heading a span, .how-list li > span { color: #3157f6; }
+.showcase-nav-cta, .showcase-primary { color: #fff !important; background: #101828; box-shadow: 0 12px 30px rgba(16,24,40,.13); }
+.showcase-nav-cta span, .showcase-primary span { color: #fff; background: #3157f6; }
+.showcase-hero { color: #101828; background: #fff; }
+.showcase-hero:before { opacity: .55; background-image: radial-gradient(#d8dee8 .7px, transparent .8px); mask-image: linear-gradient(to bottom, #000, transparent 88%); }
+.showcase-kicker, .showcase-lede { color: #667085; }
+.showcase-kicker i, .showcase-trust i { background: #ff6846; }
+.showcase h1 em, .showcase h2 em { color: #3157f6; }
+.showcase-secondary { border-color: #d0d5dd; }
+.showcase-trust { color: #98a2b3; }
+.showcase-stage { color: #fff; border-left: 1px solid #e8ecf2; background: radial-gradient(circle at 52% 43%, #f8faff 0, #edf2ff 45%, #f8fafc 100%); }
+.stage-orbit { border-color: #3157f643; }
+.stage-cursor { background: #101828e8; }
+.stage-cursor b { color: #fff; background: #3157f6; }
+.showcase-marquee { color: #fff; background: #3157f6; }
+.showcase-intro > div > p, .format-card > p { color: #667085; }
+.format-card { border-color: #e4e7ec; }
+.showcase-work { color: #101828; border-block: 1px solid #e6eaf0; background: #f8fafc; }
+.work-heading h2 { color: #101828; }
+.work-heading a { border-color: #cfd5df; }
+.showcase-how { color: #101828; border-bottom: 1px solid #e6eaf0; background: #fff; }
+.how-copy > p:not(.showcase-section-number), .how-list p { color: #667085; }
+.showcase-primary.light { color: #fff !important; background: #3157f6; }
+.showcase-primary.light span { background: #101828; }
+.how-list, .how-list li { border-color: #dfe3ea; }
+.how-list i { border-color: #cbd2dc; }
+.how-list li:hover i { color: #fff; background: #3157f6; }
+.category-cloud, .category-cloud a { border-color: #dfe3ea; }
+.category-cloud a:hover { color: #fff; background: #101828; }
+.category-cloud a > span:last-child { color: #3157f6; }
+.showcase-final { color: #101828; border-top: 1px solid #dfe5ee; background: linear-gradient(135deg, #f8faff, #eef3ff 48%, #f4fffd); }
+.showcase-final h2 em { color: #3157f6; }
+.showcase-final > a { color: #fff; background: #101828; }
+.showcase-final > a span { color: #71ead9; }
+.final-sun i { border-color: #3157f620; }
+.showcase-footer { color: #101828; border-top: 1px solid #e6eaf0; background: #fff; }
+.showcase-brand.inverse { color: #101828; }
+.showcase-footer p { color: #667085; }
+.showcase-footer small { color: #98a2b3; }
+.topbar, .editor-top, .email-public-nav, .email-creator-nav { background: rgba(255,255,255,.96); border-color: #e6eaf0; }
+.shell, .editor-shell, .account-page, .admin-auth-page, .auth-panel { background: #fff; }
+.auth-art { color: #101828; background: linear-gradient(145deg, #fff 0%, #f0f4ff 55%, #ecfffb 100%); }
+.auth-art:before { opacity: .16; }
+.auth-brand, .auth-brand.dark { color: #101828; }
+.admin-auth-card, .auth-card, .account-card { border-color: #e4e7ec; box-shadow: 0 22px 70px rgba(16,24,40,.1); }
+@media (prefers-reduced-motion: reduce) { .showcase-brand i, .auth-brand > i, .brand::after { animation: none; } }

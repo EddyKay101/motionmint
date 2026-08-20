@@ -1,4 +1,4 @@
-# MotionMint WebM to MP4 converter
+# Turnbine WebM to MP4 converter
 
 This private conversion service accepts a raw WebM recording and returns an H.264/AAC MP4. It is intentionally separate from the Cloudflare frontend because FFmpeg requires a container runtime.
 
@@ -20,7 +20,7 @@ Convert a file:
 ```bash
 curl --fail \
   -H 'Content-Type: video/webm' \
-  -H 'X-File-Name: my-motionmint-banner.webm' \
+  -H 'X-File-Name: my-turnbine-banner.webm' \
   --data-binary @banner.webm \
   http://localhost:8080/convert \
   --output banner.mp4
@@ -33,7 +33,7 @@ const response = await fetch("http://localhost:8080/convert", {
   method: "POST",
   headers: {
     "content-type": "video/webm",
-    "x-file-name": "my-motionmint-banner.webm",
+    "x-file-name": "my-turnbine-banner.webm",
   },
   body: webmBlob,
 });
@@ -43,7 +43,7 @@ const mp4Blob = await response.blob();
 
 ## Configuration
 
-- `CORS_ORIGIN`: exact MotionMint frontend origin. Do not use `*` in production.
+- `CORS_ORIGIN`: exact Turnbine frontend origin. Do not use `*` in production.
 - `MAX_UPLOAD_MB`: maximum WebM request size; default `250`.
 - `MAX_CONCURRENT_CONVERSIONS`: concurrent FFmpeg processes; default `2`.
 - `CONVERSION_TIMEOUT_SECONDS`: per-conversion timeout; default `300`.

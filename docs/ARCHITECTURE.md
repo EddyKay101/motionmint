@@ -1,4 +1,4 @@
-# MotionMint MVP architecture
+# Turnbine MVP architecture
 
 ## Backend foundation
 
@@ -7,7 +7,7 @@
 - Local storage remains the offline draft and instant autosave layer; database sync is best-effort.
 - Uploaded image, video and audio bytes remain on the customer device. R2 is intentionally disabled until authenticated private uploads are introduced.
 - `POST /api/render-jobs` queues the deterministic headless-browser + FFmpeg contract. It does not yet run the production renderer.
-- Template writes require a server-side `MOTIONMINT_ADMIN_KEY`; published templates are available through the catalogue endpoint.
+- Template writes require a server-side `TURNBINE_ADMIN_KEY`; published templates are available through the catalogue endpoint.
 
 ## Prototype audit
 

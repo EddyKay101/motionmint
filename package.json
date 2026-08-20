@@ -1,5 +1,5 @@
 {
-  "name": "motionmint-pwa",
+  "name": "turnbine-pwa",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -11,7 +11,9 @@
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:production": "WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler d1 migrations apply motionmint-production --remote",
+    "deploy:cloudflare": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext-cloudflare deploy --name motionmint"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.14",
@@ -33,6 +35,7 @@
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@vinext/cloudflare": "^1.0.0-beta.2",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
     "drizzle-kit": "0.31.10",

@@ -82,12 +82,12 @@ export async function generateOpenAIEmailConcepts(
     body: JSON.stringify({
       model,
       instructions:
-        "You are MotionMint's senior lifecycle email copywriter. Draft three original marketing email concepts from a blank canvas. Do not reuse or imitate any specific existing brand's email. Each concept must have a distinct opening line, structure and call to action. Use only heading, paragraph, button, divider and spacer block types (no images, no raw HTML/markdown). Button href must be a real-looking placeholder URL like https://example.com/action. Keep copy concise and skimmable.",
+        "You are Turnbine's senior lifecycle email copywriter. Draft three original marketing email concepts from a blank canvas. Do not reuse or imitate any specific existing brand's email. Each concept must have a distinct opening line, structure and call to action. Use only heading, paragraph, button, divider and spacer block types (no images, no raw HTML/markdown). Button href must be a real-looking placeholder URL like https://example.com/action. Keep copy concise and skimmable.",
       input: `Creative brief: ${prompt}\nTone: ${brief.tone || "confident and clear"}\nGoal: ${brief.goal || "infer from the brief"}`,
       text: {
         format: {
           type: "json_schema",
-          name: "motionmint_email_concepts",
+          name: "turnbine_email_concepts",
           strict: true,
           schema,
         },
@@ -143,12 +143,12 @@ export async function generateOpenAIEmailConcepts(
       }
     });
     const config: EmailCampaignConfig = {
-      brandName: "MotionMint",
+      brandName: "Turnbine",
       accent: item.accent,
       backgroundColor: "#f7f5fb",
       textColor: "#14121d",
       footerText:
-        "You're receiving this email because you opted in to MotionMint updates.",
+        "You're receiving this email because you opted in to Turnbine updates.",
       blocks,
     };
     return {
